@@ -1,0 +1,9 @@
+# IDE Settings
+.openclaw/
+.sii/
+.vscode/
+.idea/
+
+
+# Build files
+release/
