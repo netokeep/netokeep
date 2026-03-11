@@ -90,8 +90,8 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 			continue
 		}
 
-		// 3. 成功开启流，发送暗号 0x02 (Socks5/流量转发)
-		_, err = stream.Write([]byte{0x02})
+		// 3. 成功开启流，发送构建的头部
+		_, err = stream.Write(header)
 		if err != nil {
 			stream.Close()
 			sm.RemoveSession(sid)

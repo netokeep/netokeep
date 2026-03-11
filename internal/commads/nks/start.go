@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func CreateStartCmd() *cobra.Command {
 	var sshPort uint16
 	var httPort uint16
@@ -34,7 +33,7 @@ func CreateStartCmd() *cobra.Command {
 
 			// Handle outgoing traffic
 			go traffic.StartSocksListener(ctx, httPort, func(conn *protocol.SocksConn) {
-				header := protocol.CreateSocksHeader(conn)
+				header := protocol.CreateSocHeader(conn)
 				// Select one accessible session to forward outgoing traffic
 				manager.Traffic2Session(conn, header)
 			})
@@ -45,13 +44,11 @@ func CreateStartCmd() *cobra.Command {
 				case protocol.SshHeader:
 					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 					if err != nil {
-						log.Printf("Failed to connect to local ssh server: %v", err)
-						return
+						log.Fatalf("Failed to connect to local ssh server: %v", err)
 					}
 					transport.Relay(conn, remoteConn)
 				default:
-					println("asdfasdf")
-					return
+					log.Fatal("Invalid request.")
 				}
 			})
 		},

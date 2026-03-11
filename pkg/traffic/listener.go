@@ -30,7 +30,7 @@ func StartSocksListener(ctx context.Context, port uint16, handler func(conn *pro
 				// Small protocol to pack data.
 				socksConn, err := protocol.GetSocksHandler(conn)
 				if err != nil {
-					log.Fatalf("[TRAFFIC] Error in getting socks handler: %v", err)
+					log.Fatalf("[LISTENER] Error in getting socks handler: %v", err)
 					return
 				}
 				handler(socksConn)

@@ -33,7 +33,7 @@ func IsWsRequest(w http.ResponseWriter, r *http.Request) (string, bool) {
 
 	// Validate the request
 	if r.Header.Get("Upgrade") != "websocket" {
-		log.Printf("Refused request from: %s (not ws)", client)
+		log.Printf("[WS] Refused request from: %s (not ws)", client)
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
 		return "", false
 	}

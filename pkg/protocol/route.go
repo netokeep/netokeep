@@ -2,6 +2,8 @@ package protocol
 
 import (
 	"encoding/binary"
+	"io"
+	"log"
 	"net"
 )
 
@@ -13,16 +15,25 @@ const (
 )
 
 const (
-	socksByte = 0x02
+	socByte = 0x02
 	sshByte   = 0x01
 )
 
-func CreateSocksHeader(conn *SocksConn) []byte {
+/*
+CreateSocHeader creates a header for simple protocol called soc.
+
+The format is as follows:
+	- 1 byte: header type (sock identification)
+	- 2 bytes: destination port (big endian)
+	- 1 byte: length of destination host
+	- N bytes: destination host (domain or IP)
+*/
+func CreateSocHeader(conn *SocksConn) []byte {
 	host := conn.Host()
 	port := conn.Port()
 
 	header := make([]byte, 0, 1+2+1+len(host))
-	header = append(header, socksByte)
+	header = append(header, socByte)
 	header = binary.BigEndian.AppendUint16(header, port)
 	header = append(header, byte(len(host)))
 	header = append(header, []byte(host)...)
@@ -36,20 +47,41 @@ func CreateSshHeader(conn net.Conn) []byte {
 	return header
 }
 
-
 func MatchHeader(conn net.Conn) RoutePattern {
 	buf := make([]byte, 1)
-	n, err := conn.Read(buf)
+	n, err := io.ReadFull(conn, buf)
 	if err != nil || n == 0 {
 		return -1
 	}
 
 	switch buf[0] {
-	case socksByte:
+	case socByte:
 		return SocksHeader
 	case sshByte:
 		return SshHeader
 	default:
 		return -1
 	}
+}
+
+func ParseSocHeader(conn net.Conn) (string, uint16) {
+	portBuf := make([]byte, 2)
+    if _, err := io.ReadFull(conn, portBuf); err != nil {
+        log.Fatalf("[ROUTE] Failed to read host port: %v", err)
+    }
+    port := binary.BigEndian.Uint16(portBuf)
+
+	lenBuf := make([]byte, 1)
+	if _, err := io.ReadFull(conn, lenBuf); err != nil {
+		log.Fatalf("[ROUTE] Failed to read the length of host: %v", err)
+	}
+	hostLen := int(lenBuf[0])
+
+	hostBuf := make([]byte, hostLen)
+	if _, err := io.ReadFull(conn, hostBuf); err != nil {
+		log.Fatalf("[ROUTE] Faild to read host name: %v", err)
+	}
+	host := string(hostBuf)
+
+	return host, port
 }
