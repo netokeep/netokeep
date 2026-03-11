@@ -2,105 +2,31 @@ package nks
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net"
-	"net/http"
 	"netokeep/pkg/protocol"
-	"netokeep/pkg/router"
-	"netokeep/pkg/transport"
+	"netokeep/pkg/session"
+	"netokeep/pkg/traffic"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/hashicorp/yamux"
 	"github.com/spf13/cobra"
 )
 
-func startProxy(ctx context.Context, port uint16) {
-	if port == 0 {
-		return
-	}
-	log.Printf("🌐 Container gateway started: %d", port)
-	lc := net.ListenConfig{}
-	listener, err := lc.Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", port))
-	if err != nil {
-		log.Printf("Proxy failed: %v", err)
-	}
+func startService(ctx context.Context, sshPort uint16, httPort uint16, outPort uint16) {
+	// Create a session manager to handle all user sessions
+	manager := session.NewSessionManager()
 
-	go func() {
-		<-ctx.Done()
-		listener.Close()
-	}()
-
-	for {
-		clientConn, _ := listener.Accept()
-
-		// Find the first session to forward internet traffic
-		go func(conn net.Conn) {
-			defer conn.Close()
-			protocol.Traffic2Session(clientConn)
-		}(clientConn)
-	}
-}
-
-func startService(ctx context.Context, sshPort uint16, outPort uint16) {
-	// Handle HTTP connection
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		sid, ok := transport.IsWsRequest(w, r)
-		if !ok {
-			return
-		}
-
-		// Upgrade to the WebSocket protocol.
-		wsConn, err := transport.Upgrade2Ws(w, r)
-		if err != nil {
-			log.Fatalf("Failed to upgrade HTTP to Ws: %v", err)
-		}
-		// Pack ws to stream
-		wsStream := transport.NewWsStream(wsConn)
-
-		// Check whether reconnection
-		if protocol.Reconnect(sid, wsStream) {
-			log.Printf("Recorded session. Reconnected.")
-			return
-		}
-
-		// For new input
-		pConn := transport.NewPersistentConn(wsStream)
-		session, _ := yamux.Server(pConn, nil)
-
-		if !protocol.NewSession(sid, pConn, session) {
-			log.Printf("Failed to create session.")
-			return
-		}
-
-		for {
-			stream, err := session.Accept()
-			if err != nil {
-				break
-			}
-			go func(s net.Conn) {
-				defer s.Close()
-				router.HandleLogicStream(stream, sshPort)
-			}(stream)
-		}
-		protocol.RemoveSession(sid)
+	// Handle outgoing traffic
+	go traffic.StartSocksListener(ctx, httPort, func(conn *protocol.SocksConn) {
+		header := protocol.CreateSocksHeader(conn)
+		// Select one accessible session to forward outgoing traffic
+		manager.Traffic2Session(conn, header)
 	})
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf("0.0.0.0:%d", outPort),
-		Handler: mux,
-	}
-	go func() {
-		<-ctx.Done()
-		server.Shutdown(context.Background())
-	}()
-
-	// Start the Server using http
-	log.Printf("🚀 NetoKeep Server started, forwarding port: %d", outPort)
-	server.ListenAndServe()
+	traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
+		print("Find connection.")
+	})
 }
 
 func CreateStartCmd() *cobra.Command {
@@ -115,10 +41,7 @@ func CreateStartCmd() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
-			// Start HTTP traffic proxy
-			go startProxy(ctx, httPort)
-
-			startService(ctx, sshPort, outPort)
+			startService(ctx, sshPort, httPort, outPort)
 		},
 	}
 

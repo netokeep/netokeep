@@ -9,6 +9,10 @@ Setup SSH tunnels and HTTP proxies to keep your restricted containers connected 
 Container Listening (No Internet) <--> HTTP/HTTPS Link <--> Users
 ```
 
+> Currently, netokeep only supports ws connection.
+>
+> 目前 netokeep 仅支持 ws 连接。
+
 ## Quick start
 
 ### Server Part
@@ -17,7 +21,7 @@ Setup the netokeep server
 > Please ensure that your SSH service has started to the input port for SSH connection.
 
 ```bash
-nks start -i 22  -o 7222
+nks start -s 22 -h 1080 -o 7222
 ```
 Then get the HTTP Link provided by your company <HTTP_LINK>.
 

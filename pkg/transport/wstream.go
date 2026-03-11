@@ -59,12 +59,15 @@ type PersistentConn struct {
 	cond   *sync.Cond
 	raw    net.Conn
 	closed bool
+
+	RequireWS chan struct{}
 }
 
 func NewPersistentConn(conn net.Conn) *PersistentConn {
 	pc := &PersistentConn{
-		Conn: conn,
-		raw:  conn,
+		Conn:      conn,
+		raw:       conn,
+		RequireWS: make(chan struct{}, 1),
 	}
 	pc.cond = sync.NewCond(&pc.mu)
 	return pc
@@ -87,13 +90,19 @@ func (pc *PersistentConn) Write(p []byte) (n int, err error) {
 			return 0, io.ErrClosedPipe
 		}
 		if pc.raw != nil {
-			n, err = pc.raw.Write(p)
+			r := pc.raw
+
+			pc.mu.Unlock()
+			n, err = r.Write(p)
+			pc.mu.Lock()
 			if err == nil {
 				return n, nil
 			}
 			// If the write fails (due to an underlying disconnect),
 			// reset the old connection to null and enter a waiting state.
-			pc.raw = nil
+			if pc.raw == r {
+				pc.raw = nil
+			}
 		}
 		// Block until UpdateConn is called
 		pc.cond.Wait()
@@ -108,12 +117,19 @@ func (pc *PersistentConn) Read(p []byte) (n int, err error) {
 		if pc.closed {
 			return 0, io.EOF
 		}
+
 		if pc.raw != nil {
-			n, err = pc.raw.Read(p)
+			r := pc.raw
+			pc.mu.Unlock()
+			n, err = r.Read(p)
+			pc.mu.Lock()
+
 			if err == nil {
 				return n, nil
 			}
-			pc.raw = nil
+			if pc.raw == r {
+				pc.raw = nil
+			}
 		}
 		pc.cond.Wait()
 	}
@@ -129,4 +145,17 @@ func (pc *PersistentConn) Close() error {
 	}
 	pc.cond.Broadcast()
 	return nil
+}
+
+// 在 Read/Write 报错时触发信号
+func (pc *PersistentConn) handleDisconnect() {
+	pc.mu.Lock()
+	pc.raw = nil
+	pc.mu.Unlock()
+
+	select {
+	case pc.RequireWS <- struct{}{}:
+	default:
+		// 信号还没被消费，说明重连已经在路上了
+	}
 }

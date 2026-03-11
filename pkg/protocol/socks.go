@@ -11,11 +11,11 @@ type SocksConn struct {
 	port uint16
 }
 
-func (sc * SocksConn) Host() string {
+func (sc *SocksConn) Host() string {
 	return sc.host
 }
 
-func (sc * SocksConn) Port() uint16 {
+func (sc *SocksConn) Port() uint16 {
 	return sc.port
 }
 
