@@ -18,7 +18,7 @@ import (
 
 func CreateStartCmd() *cobra.Command {
 	var sshPort uint16
-	var httPort uint16
+	var tcpPort uint16
 	var outPort uint16
 
 	var startCmd = &cobra.Command{
@@ -32,7 +32,7 @@ func CreateStartCmd() *cobra.Command {
 			manager := session.NewSessionManager()
 
 			// Handle outgoing traffic
-			go traffic.StartSocksListener(ctx, httPort, func(conn *protocol.SocksConn) {
+			go traffic.StartSocksListener(ctx, tcpPort, func(conn *protocol.SocksConn) {
 				header := protocol.CreateSocHeader(conn)
 				// Select one accessible session to forward outgoing traffic
 				manager.Traffic2Session(conn, header)
@@ -54,8 +54,8 @@ func CreateStartCmd() *cobra.Command {
 		},
 	}
 
-	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 22, "port to proxy traffic.")
-	startCmd.Flags().Uint16VarP(&httPort, "httPort", "t", 1080, "port to proxy traffic.")
+	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 22, "port to proxy SSH traffic.")
+	startCmd.Flags().Uint16VarP(&tcpPort, "tcpPort", "t", 1080, "port to proxy TCP traffic.")
 	startCmd.Flags().Uint16VarP(&outPort, "outPort", "o", 7222, "port to forward traffic.")
 
 	return startCmd

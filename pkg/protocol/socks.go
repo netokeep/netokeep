@@ -20,7 +20,7 @@ func (sc *SocksConn) Port() uint16 {
 }
 
 /*
-GetSocksHandler resolves the socks5 handshake and skip the header, then return the connection for further processing.
+GetSocksHandler resolves the socks5 handshake and skip the header, then return the connection.
 */
 func GetSocksHandler(conn net.Conn) (*SocksConn, error) {
 	buf := make([]byte, 1024)

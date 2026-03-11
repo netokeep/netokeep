@@ -17,7 +17,7 @@ import (
 
 func CreateStartCmd() *cobra.Command {
 	var remoteAddr string
-	var sid string
+	var sshPort uint16
 
 	var startCmd = &cobra.Command{
 		Use:   "start",
@@ -46,8 +46,8 @@ func CreateStartCmd() *cobra.Command {
 		},
 	}
 
-	startCmd.Flags().StringVarP(&remoteAddr, "remoteAddress", "r", "127.0.0.1:7222", "NKS server address")
-	startCmd.Flags().StringVarP(&sid, "id", "n", "shun-client", "Session ID for identification")
+	startCmd.Flags().StringVarP(&remoteAddr, "remoteAddress", "r", "", "NKS server address")
+	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 22, "SSH port")
 	startCmd.MarkFlagRequired("remoteAddress")
 
 	return startCmd
