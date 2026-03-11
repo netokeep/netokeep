@@ -8,8 +8,8 @@ import (
 type RoutePattern int
 
 const (
-	PatternSocks RoutePattern = iota
-	PatternSSH
+	SocksHeader RoutePattern = iota
+	SshHeader
 )
 
 const (
@@ -34,4 +34,22 @@ func CreateSshHeader(conn net.Conn) []byte {
 	header := make([]byte, 1)
 	header[0] = sshByte
 	return header
+}
+
+
+func MatchHeader(conn net.Conn) RoutePattern {
+	buf := make([]byte, 1)
+	n, err := conn.Read(buf)
+	if err != nil || n == 0 {
+		return -1
+	}
+
+	switch buf[0] {
+	case socksByte:
+		return SocksHeader
+	case sshByte:
+		return SshHeader
+	default:
+		return -1
+	}
 }

@@ -2,10 +2,13 @@ package nks
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net"
 	"netokeep/pkg/protocol"
 	"netokeep/pkg/session"
 	"netokeep/pkg/traffic"
+	"netokeep/pkg/transport"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,21 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startService(ctx context.Context, sshPort uint16, httPort uint16, outPort uint16) {
-	// Create a session manager to handle all user sessions
-	manager := session.NewSessionManager()
-
-	// Handle outgoing traffic
-	go traffic.StartSocksListener(ctx, httPort, func(conn *protocol.SocksConn) {
-		header := protocol.CreateSocksHeader(conn)
-		// Select one accessible session to forward outgoing traffic
-		manager.Traffic2Session(conn, header)
-	})
-
-	traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
-		print("Find connection.")
-	})
-}
 
 func CreateStartCmd() *cobra.Command {
 	var sshPort uint16
@@ -41,7 +29,31 @@ func CreateStartCmd() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
-			startService(ctx, sshPort, httPort, outPort)
+			// Create a session manager to handle all user sessions
+			manager := session.NewSessionManager()
+
+			// Handle outgoing traffic
+			go traffic.StartSocksListener(ctx, httPort, func(conn *protocol.SocksConn) {
+				header := protocol.CreateSocksHeader(conn)
+				// Select one accessible session to forward outgoing traffic
+				manager.Traffic2Session(conn, header)
+			})
+
+			traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
+				switch pattern := protocol.MatchHeader(conn); pattern {
+				// The client will just actively send ssh request using channel
+				case protocol.SshHeader:
+					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
+					if err != nil {
+						log.Printf("Failed to connect to local ssh server: %v", err)
+						return
+					}
+					transport.Relay(conn, remoteConn)
+				default:
+					println("asdfasdf")
+					return
+				}
+			})
 		},
 	}
 
