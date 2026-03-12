@@ -1,37 +1,72 @@
 VERSION := 0.2.0
-
-CLIENT_BINARY_NAME := "nk"
-SERVER_BINARY_NAME := "nks"
-PACKAGE_NAME := "netokeep"
+PACKAGE_NAME := netokeep
 DISPLAY_NAME := "NetoKeep"
-BUILD_DIR := "./release/build"
-RELEASE_DIR := "./release"
 
-ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+# Directory definitions
+BUILD_ROOT := ./release/build
+RELEASE_ROOT := ./release
+TEMP_DIR := ./release/temp
 
+# Target definitions
+CLIENT_SRC := ./cmd/nk/main.go
+SERVER_SRC := ./cmd/nks/main.go
+
+# Build flags
+LDFLAGS := -s -w -X main.version=$(VERSION)
+
+# Platform matrix: OS/Arch
+PLATFORMS := linux/amd64 darwin/amd64 windows/amd64
+
+.PHONY: all clean build pack format
+
+all: clean build pack
 
 format:
+	@echo "🎨 Formatting code..."
 	@gofmt -s -w .
 
-build:
-	@mkdir -p $(BUILD_DIR) && \
-	go build -ldflags "-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(CLIENT_BINARY_NAME) ./cmd/nk/main.go && \
-	go build -ldflags "-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(SERVER_BINARY_NAME) ./cmd/nks/main.go
+clean:
+	@echo "🧹 Cleaning old releases..."
+	@rm -rf $(RELEASE_ROOT)
 
+# Build for all platforms
+build: format
+	@for platform in $(PLATFORMS); do \
+		os=$${platform%/*}; \
+		arch=$${platform#*/}; \
+		ext=""; [ "$$os" = "windows" ] && ext=".exe"; \
+		output_dir=$(BUILD_ROOT)/$$os-$$arch; \
+		echo "🔨 Building $$os/$$arch..."; \
+		mkdir -p $$output_dir; \
+		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $$output_dir/nk$$ext $(CLIENT_SRC); \
+		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $$output_dir/nks$$ext $(SERVER_SRC); \
+	done
+
+# Unified packaging logic
 pack:
-	@mkdir -p $(RELEASE_DIR) && \
-	cp ./setup.sh $(BUILD_DIR)/ && \
-	chmod +x $(BUILD_DIR)/setup.sh && \
-	makeself $(BUILD_DIR) $(RELEASE_DIR)/$(PACKAGE_NAME)-Linux-amd64.sh $(DISPLAY_NAME) ./setup.sh
+	@mkdir -p $(RELEASE_ROOT)
+	@for platform in $(PLATFORMS); do \
+		os=$${platform%/*}; \
+		arch=$${platform#*/}; \
+		build_dir=$(BUILD_ROOT)/$$os-$$arch; \
+		if [ "$$os" = "windows" ]; then \
+			echo "📦 Zipping Windows $$arch..."; \
+			cd $$build_dir && zip -q -r ../../$(PACKAGE_NAME)-Windows-$$arch.zip ./*; cd - > /dev/null; \
+		else \
+			echo "📦 Making self-extracting installer for $$os/$$arch..."; \
+			cp ./setup.sh $$build_dir/; \
+			chmod +x $$build_dir/setup.sh; \
+			makeself --quiet $$build_dir $(RELEASE_ROOT)/$(PACKAGE_NAME)-$$os-$$arch.sh $(DISPLAY_NAME) ./setup.sh; \
+		fi; \
+	done
+	@rm -rf $(BUILD_ROOT) # Clean up the temporary binary directory after packaging
 
-# This command is used for test like: command_name ...
+# Debug commands
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 nk:
-	@go run ./cmd/nk/main.go $(ARGS)
-
+	@go run $(CLIENT_SRC) $(ARGS)
 nks:
-	@go run ./cmd/nks/main.go $(ARGS)
+	@go run $(SERVER_SRC) $(ARGS)
 
-
-# To prevent make from attempting to build a second target, add the catch-all rule
 %:
 	@:

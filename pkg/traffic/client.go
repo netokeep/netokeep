@@ -48,7 +48,6 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 	}()
 	log.Printf("🚀 NetoKeep tunnel is ready! [ID: %s]", sid)
 
-
 	// Handle the session connection and reconnection
 	go func() {
 		for {

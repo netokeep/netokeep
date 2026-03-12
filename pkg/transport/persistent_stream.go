@@ -17,10 +17,10 @@ const (
 type PersistentConn struct {
 	net.Conn
 
-	mu   sync.Mutex
+	mu      sync.Mutex
 	writeMu sync.Mutex
-	readMu sync.Mutex
-	cond *sync.Cond
+	readMu  sync.Mutex
+	cond    *sync.Cond
 
 	raw net.Conn
 
