@@ -33,6 +33,7 @@ rm -f netokeep-Linux-amd64.sh
 Setup the NetoKeep server
 
 > Please ensure your SSH service is running and accessible on the given port.
+> Run `export ALL_PROXY=socks5://127.0.0.1:1080` to proxy your TCP traffic in your terminal.
 
 ```bash
 nks start -s 22 -t 1080 -o 7222
@@ -41,11 +42,20 @@ Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
 ### Client Part
 
+#### 1. Setup the NetoKeep client
+
 Create the NetoKeep client to connect to your server
 
 ```bash
 nk start -s 2222 -r <HTTP_LINK>
 ```
+
+#### 2. Connect to your container using SSH
+
+```bash
+ssh -p 2222 root@localhost
+```
+
 
 And enjoy!
 

@@ -38,7 +38,7 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 		for {
 			conn, err := s.Accept()
 			if err != nil {
-				return
+				log.Fatalf("Session [%s] closed: %v", sid, err)
 			}
 			wg.Go(func() {
 				defer conn.Close()
@@ -55,22 +55,25 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 			select {
 			case <-ctx.Done():
 				return
-			case <-manager.PendingActiveCh:
-				log.Println("检测到存在正在重连的连接...")
+			case pendingSid := <-manager.PendingActiveCh:
+				if pendingSid != sid {
+					continue
+				}
+				log.Println("Received pending active signal, attempting to reconnect...")
 				for i := 0; i < 5; i++ {
 					if ctx.Err() != nil {
 						return
 					}
-					log.Printf("正在尝试第 %d 次重连...", i+1)
 					wsStream, err := dialRaw(ctx, sid, remoteAddr)
 					if err != nil {
 						time.Sleep(3 * time.Second)
 						continue
 					}
 					manager.Reconnect(sid, wsStream)
-					log.Printf("重连成功! [ID: %s]", sid)
+					log.Printf("Reconnected successfully! [ID: %s]", sid)
 					break
 				}
+				log.Fatalf("Failed to reconnect to server after 5 attempts.")
 			}
 		}
 	}()

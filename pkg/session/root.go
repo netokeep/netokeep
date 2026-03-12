@@ -20,7 +20,7 @@ type SessionManager struct {
 	pendingIDs      []string
 	disconnectedIDs []string
 
-	PendingActiveCh chan struct{}
+	PendingActiveCh chan string
 }
 
 type UserSession struct {
@@ -30,7 +30,7 @@ type UserSession struct {
 
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
-		PendingActiveCh: make(chan struct{}, 1),
+		PendingActiveCh: make(chan string, 16),
 	}
 }
 
@@ -45,7 +45,7 @@ func (sm *SessionManager) NewSession(sid string, pConn *transport.PersistentConn
 	// Listen for session state change in a separate goroutine
 	go func() {
 		for state := range user.PC.StateChangeCh {
-			log.Printf("Session [%s] state changed: %s", sid, state)
+			log.Printf("Session [%s] state changed to: %d", sid, state)
 			switch state {
 			case transport.StateDisconnected:
 				sm.mu.Lock()
@@ -126,9 +126,9 @@ func (sm *SessionManager) moveID(from *[]string, to *[]string, sid string) {
 	*to = append(*to, sid)
 
 	// Handle pending active signal
-	if from == &sm.pendingIDs && len(sm.pendingIDs) > 1 {
+	if to == &sm.pendingIDs && len(sm.pendingIDs) > 0 {
 		select {
-		case sm.PendingActiveCh <- struct{}{}:
+		case sm.PendingActiveCh <- sid:
 		default:
 		}
 	}

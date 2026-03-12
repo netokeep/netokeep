@@ -61,7 +61,7 @@ func CreateStartCmd() *cobra.Command {
 	}
 
 	startCmd.Flags().StringVarP(&remoteAddr, "remoteAddress", "r", "", "NKS server address")
-	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 22, "SSH port")
+	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 2222, "SSH port")
 	startCmd.MarkFlagRequired("remoteAddress")
 
 	return startCmd

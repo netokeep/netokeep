@@ -50,6 +50,7 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 			for {
 				conn, err := s.Accept()
 				if err != nil {
+					log.Printf("Session [%s] closed: %v", sid, err)
 					return
 				}
 
