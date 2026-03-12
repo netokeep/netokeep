@@ -17,4 +17,4 @@ chmod 755 /usr/local/bin/nk
 chmod 755 /usr/local/bin/nks
 
 echo "✅ Installation completed successfully!"
-echo "👉 Now use 'nk' and 'nks' at anywhere."
+echo "👉 Now use 'nk' and 'nks' anywhere in your shell."

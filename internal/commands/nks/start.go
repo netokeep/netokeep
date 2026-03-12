@@ -42,13 +42,16 @@ func CreateStartCmd() *cobra.Command {
 				switch pattern := protocol.MatchHeader(conn); pattern {
 				// The client will just actively send ssh request using channel
 				case protocol.SshHeader:
+					// No need to parse header
 					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 					if err != nil {
-						log.Fatalf("Failed to connect to local ssh server: %v", err)
+						log.Printf("Failed to connect to local ssh server: %v", err)
+						return
 					}
 					transport.Relay(conn, remoteConn)
 				default:
-					log.Fatal("Invalid request.")
+					log.Printf("Invalid request.")
+					return
 				}
 			})
 		},

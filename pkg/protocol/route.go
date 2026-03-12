@@ -2,8 +2,8 @@ package protocol
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
-	"log"
 	"net"
 )
 
@@ -64,24 +64,27 @@ func MatchHeader(conn net.Conn) RoutePattern {
 	}
 }
 
-func ParseSocHeader(conn net.Conn) (string, uint16) {
-	portBuf := make([]byte, 2)
+/*
+ParseSocHeader reads the soc header from the connection and returns the destination host and port.
+*/
+func ParseSocHeader(conn net.Conn) (string, uint16, error) {
+    portBuf := make([]byte, 2)
     if _, err := io.ReadFull(conn, portBuf); err != nil {
-        log.Fatalf("[ROUTE] Failed to read host port: %v", err)
+        return "", 0, errors.New("failed to read host port")
     }
     port := binary.BigEndian.Uint16(portBuf)
 
-	lenBuf := make([]byte, 1)
-	if _, err := io.ReadFull(conn, lenBuf); err != nil {
-		log.Fatalf("[ROUTE] Failed to read the length of host: %v", err)
-	}
-	hostLen := int(lenBuf[0])
+    lenBuf := make([]byte, 1)
+    if _, err := io.ReadFull(conn, lenBuf); err != nil {
+        return "", 0, errors.New("failed to read the length of host")
+    }
+    hostLen := int(lenBuf[0])
 
-	hostBuf := make([]byte, hostLen)
-	if _, err := io.ReadFull(conn, hostBuf); err != nil {
-		log.Fatalf("[ROUTE] Faild to read host name: %v", err)
-	}
-	host := string(hostBuf)
+    hostBuf := make([]byte, hostLen)
+    if _, err := io.ReadFull(conn, hostBuf); err != nil {
+        return "", 0, errors.New("failed to read host name")
+    }
+    host := string(hostBuf)
 
-	return host, port
+    return host, port, nil
 }
