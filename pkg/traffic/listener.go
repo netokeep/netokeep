@@ -15,7 +15,7 @@ func StartSocksListener(ctx context.Context, port uint16, handler func(conn *pro
 	la := fmt.Sprintf("127.0.0.1:%d", port)
 	l, err := lc.Listen(ctx, "tcp", la)
 	if err != nil {
-		return err
+		log.Fatalf("Error in listening port %d: %v", port, err)
 	}
 	log.Printf("🌐 Container gateway started at port %d", port)
 
@@ -53,7 +53,7 @@ func StartSshListener(ctx context.Context, port uint16, handler func(conn net.Co
 	la := fmt.Sprintf("127.0.0.1:%d", port)
 	l, err := lc.Listen(ctx, "tcp", la)
 	if err != nil {
-		return err
+		log.Fatalf("Error in listening port %d: %v", port, err)
 	}
 	log.Printf("🌐 SSH listener started at port %d", port)
 

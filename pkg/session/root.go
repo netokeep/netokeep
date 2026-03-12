@@ -10,9 +10,17 @@ import (
 )
 
 type SessionManager struct {
-	sessions    sync.Map
-	activateIDs []string
-	mu          sync.Mutex
+	// mu is assigned to protect the following fields:
+	// 	- activateIDs
+	// 	- pendingIDs
+	mu sync.Mutex
+
+	sessions        sync.Map
+	connectedIDs    []string
+	pendingIDs      []string
+	disconnectedIDs []string
+
+	PendingActiveCh chan struct{}
 }
 
 type UserSession struct {
@@ -21,7 +29,43 @@ type UserSession struct {
 }
 
 func NewSessionManager() *SessionManager {
-	return &SessionManager{}
+	return &SessionManager{
+		PendingActiveCh: make(chan struct{}, 1),
+	}
+}
+
+func (sm *SessionManager) NewSession(sid string, pConn *transport.PersistentConn, session *yamux.Session) bool {
+	user := &UserSession{PC: pConn, Mux: session}
+	sm.sessions.Store(sid, user)
+
+	sm.mu.Lock()
+	sm.connectedIDs = append(sm.connectedIDs, sid)
+	sm.mu.Unlock()
+
+	// Listen for session state change in a separate goroutine
+	go func() {
+		for state := range user.PC.StateChangeCh {
+			log.Printf("Session [%s] state changed: %s", sid, state)
+			switch state {
+			case transport.StateDisconnected:
+				sm.mu.Lock()
+				sm.moveID(&sm.connectedIDs, &sm.disconnectedIDs, sid)
+				sm.moveID(&sm.pendingIDs, &sm.disconnectedIDs, sid)
+				sm.sessions.Delete(sid)
+				sm.mu.Unlock()
+			case transport.StateReconnecting:
+				sm.mu.Lock()
+				sm.moveID(&sm.connectedIDs, &sm.pendingIDs, sid)
+				sm.mu.Unlock()
+			case transport.StateConnected:
+				sm.mu.Lock()
+				sm.moveID(&sm.pendingIDs, &sm.connectedIDs, sid)
+				sm.mu.Unlock()
+			}
+		}
+	}()
+
+	return true
 }
 
 func (sm *SessionManager) Reconnect(sid string, conn net.Conn) bool {
@@ -33,86 +77,59 @@ func (sm *SessionManager) Reconnect(sid string, conn net.Conn) bool {
 	return false
 }
 
-func (sm *SessionManager) NewSession(sid string, pConn *transport.PersistentConn, session *yamux.Session) bool {
-	println(sid)
-	user := &UserSession{PC: pConn, Mux: session}
-	sm.sessions.Store(sid, user)
-
-	sm.mu.Lock()
-	sm.activateIDs = append(sm.activateIDs, sid)
-	sm.mu.Unlock()
-
-	return true
-}
-
-func (sm *SessionManager) RemoveSession(sid string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	for i, id := range sm.activateIDs {
-		for id == sid {
-			sm.activateIDs = append(sm.activateIDs[:i], sm.activateIDs[i+1:]...)
-			break
-		}
-	}
-	sm.sessions.Delete(sid)
-}
-
 func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 	for {
 		sm.mu.Lock()
-		if len(sm.activateIDs) == 0 {
+		if len(sm.connectedIDs) == 0 {
 			sm.mu.Unlock()
-			log.Printf("⚠️ 无可用 Session，出口流量已阻断")
+			log.Printf("[SESSION] No available session, waiting for reconnection...")
 			clientConn.Close()
 			return
 		}
 
-		// 1. 总是尝试当前队列的第一个（“承载者”）
-		sid := sm.activateIDs[0]
-		val, ok := sm.sessions.Load(sid)
+		// 1. Find the first available session to forward traffic
+		sid := sm.connectedIDs[0]
+		val, _ := sm.sessions.Load(sid)
 		sm.mu.Unlock()
 
-		if !ok {
-			// 这种属于索引不一致，保险起见清理一下
-			sm.cleanAndRetry(sid)
-			continue
-		}
-
+		// 2. Try to open a logical stream on this Session.
+		// If the PersistentConn is reconnecting, this will block until it finishes.
+		// If the PersistentConn is fully disconnected, this will error out.
 		user := val.(*UserSession)
-
-		// 2. 尝试在这个 Session 上开启一个逻辑流
-		// 如果 PersistentConn 正在重连，这里会阻塞等待
-		// 如果 PersistentConn 彻底断开了，这里会报 error
 		stream, err := user.Mux.Open()
 		if err != nil {
-			log.Printf("❌ Session [%s] 已失效，尝试补位...", sid)
-			sm.RemoveSession(sid) // 踢掉挂了的，进入下一次循环尝试 activateIDs[1]
+			log.Printf("[SESSION] Session [%s] failed to open stream, falling back to another session...", sid)
 			continue
 		}
 
-		// 3. 成功开启流，发送构建的头部
+		// 3. Succeed in opening a stream, send the constructed header
 		_, err = stream.Write(header)
 		if err != nil {
+			log.Printf("[SESSION] Session [%s] failed to write header, falling back to another session...", sid)
 			stream.Close()
-			sm.RemoveSession(sid)
 			continue
 		}
 
-		// 4. 进入双向拷贝，完成接力
-		// 这里的 Relay 结束后，协程自然退出
+		// 4. Entering Relay, exit after completion
 		transport.Relay(clientConn, stream)
 		return
 	}
 }
 
-// 辅助工具：强制清理
-func (sm *SessionManager) cleanAndRetry(sid string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	for i, id := range sm.activateIDs {
+func (sm *SessionManager) moveID(from *[]string, to *[]string, sid string) {
+	for i, id := range *from {
 		if id == sid {
-			sm.activateIDs = append(sm.activateIDs[:i], sm.activateIDs[i+1:]...)
+			*from = append((*from)[:i], (*from)[i+1:]...)
 			break
+		}
+	}
+	*to = append(*to, sid)
+
+	// Handle pending active signal
+	if from == &sm.pendingIDs && len(sm.pendingIDs) > 1 {
+		select {
+		case sm.PendingActiveCh <- struct{}{}:
+		default:
 		}
 	}
 }

@@ -44,6 +44,7 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 		}
 
 		go func() {
+			defer pConn.Close()
 			defer s.Close()
 
 			for {
@@ -64,8 +65,12 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 		Addr:    fmt.Sprintf("0.0.0.0:%d", outPort),
 		Handler: mux,
 	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Printf("Failed to start server: %v", err)
+		}
+	}()
 	log.Printf("🚀 NetoKeep Server started, forwarding port: %d", outPort)
-	go server.ListenAndServe()
 
 	<-ctx.Done()
 	server.Shutdown(context.Background())
