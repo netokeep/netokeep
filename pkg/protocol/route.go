@@ -16,17 +16,17 @@ const (
 
 const (
 	socByte = 0x02
-	sshByte   = 0x01
+	sshByte = 0x01
 )
 
 /*
 CreateSocHeader creates a header for simple protocol called soc.
 
 The format is as follows:
-	- 1 byte: header type (sock identification)
-	- 2 bytes: destination port (big endian)
-	- 1 byte: length of destination host
-	- N bytes: destination host (domain or IP)
+  - 1 byte: header type (sock identification)
+  - 2 bytes: destination port (big endian)
+  - 1 byte: length of destination host
+  - N bytes: destination host (domain or IP)
 */
 func CreateSocHeader(conn *SocksConn) []byte {
 	host := conn.Host()
@@ -68,23 +68,23 @@ func MatchHeader(conn net.Conn) RoutePattern {
 ParseSocHeader reads the soc header from the connection and returns the destination host and port.
 */
 func ParseSocHeader(conn net.Conn) (string, uint16, error) {
-    portBuf := make([]byte, 2)
-    if _, err := io.ReadFull(conn, portBuf); err != nil {
-        return "", 0, errors.New("failed to read host port")
-    }
-    port := binary.BigEndian.Uint16(portBuf)
+	portBuf := make([]byte, 2)
+	if _, err := io.ReadFull(conn, portBuf); err != nil {
+		return "", 0, errors.New("failed to read host port")
+	}
+	port := binary.BigEndian.Uint16(portBuf)
 
-    lenBuf := make([]byte, 1)
-    if _, err := io.ReadFull(conn, lenBuf); err != nil {
-        return "", 0, errors.New("failed to read the length of host")
-    }
-    hostLen := int(lenBuf[0])
+	lenBuf := make([]byte, 1)
+	if _, err := io.ReadFull(conn, lenBuf); err != nil {
+		return "", 0, errors.New("failed to read the length of host")
+	}
+	hostLen := int(lenBuf[0])
 
-    hostBuf := make([]byte, hostLen)
-    if _, err := io.ReadFull(conn, hostBuf); err != nil {
-        return "", 0, errors.New("failed to read host name")
-    }
-    host := string(hostBuf)
+	hostBuf := make([]byte, hostLen)
+	if _, err := io.ReadFull(conn, hostBuf); err != nil {
+		return "", 0, errors.New("failed to read host name")
+	}
+	host := string(hostBuf)
 
-    return host, port, nil
+	return host, port, nil
 }

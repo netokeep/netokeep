@@ -20,7 +20,6 @@ func CreateStartCmd() *cobra.Command {
 	var remoteAddr string
 	var sshPort uint16
 
-
 	var startCmd = &cobra.Command{
 		Use:   "start",
 		Short: "Start the netokeep client.",

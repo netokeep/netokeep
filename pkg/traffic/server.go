@@ -24,7 +24,8 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 		}
 		wsConn, err := transport.Upgrade2Ws(w, r)
 		if err != nil {
-			log.Fatalf("Failed to upgrade HTTP to Ws: %v", err)
+			log.Printf("Failed to upgrade HTTP to Ws: %v", err)
+			return
 		}
 		wsStream := transport.NewWsStream(wsConn)
 
