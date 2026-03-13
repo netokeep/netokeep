@@ -162,7 +162,7 @@ func (sm *SessionManager) moveID(from *[]string, to *[]string, sid string) {
 	*to = append(*to, sid)
 
 	// Handle pending active signal
-	if to == &sm.pendingIDs && len(sm.pendingIDs) > 0 {
+	if to == &sm.pendingIDs && len(sm.pendingIDs) > 0 && sm.PendingActiveCh != nil {
 		select {
 		case sm.PendingActiveCh <- sid:
 		default:
