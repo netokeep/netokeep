@@ -5,6 +5,7 @@ import (
 	"net"
 	"netokeep/pkg/transport"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/yamux"
 )
@@ -134,6 +135,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		stream, err := user.mux.Open()
 		if err != nil {
 			log.Printf("[SESSION] Session [%s] failed to open stream, falling back to another session...", sid)
+			time.Sleep(time.Millisecond * 100) // Sleep a bit to avoid busy loop waiting for session state update
 			continue
 		}
 
