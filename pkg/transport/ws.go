@@ -2,7 +2,6 @@ package transport
 
 import (
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
 )
 
