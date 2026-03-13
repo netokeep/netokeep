@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"netokeep/pkg/session"
 	"netokeep/pkg/transport"
@@ -39,11 +40,13 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 
 		// For new input, create a new session and bind it with the ws connection.
 		pConn := transport.NewPersistentConn(wstream)
-		s, _ := yamux.Server(pConn, nil)
-
-		if !manager.NewSession(sid, pConn, s) {
-			log.Printf("Failed to create session.")
+		s, err := yamux.Server(pConn, nil)
+		if err != nil {
+			pConn.Close()
+			log.Printf("Failed to create session: %v", err)
+			return
 		}
+		manager.NewSession(sid, pConn, s)
 
 		go func() {
 			defer pConn.Close()
@@ -70,12 +73,16 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			log.Printf("Failed to start server: %v", err)
+			log.Printf("NetoKeep service stopped: %v", err)
+			return
 		}
 	}()
 	log.Printf("🚀 NetoKeep Server started, forwarding port: %d", outPort)
 
 	<-ctx.Done()
-	server.Shutdown(context.Background())
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	server.Shutdown(shutdownCtx)
+	manager.Close()
 	wg.Wait()
 }

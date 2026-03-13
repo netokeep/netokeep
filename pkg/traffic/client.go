@@ -26,11 +26,24 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 		remoteAddr = "ws://" + strings.Split(remoteAddr, "://")[1]
 	}
 
-	s, pConn, err := createSession(ctx, sid, remoteAddr)
+	// Create ws connection
+	header := http.Header{}
+	header.Add("X-Session-ID", sid)
+	wsConn, _, err := websocket.DefaultDialer.Dial(remoteAddr, header)
 	if err != nil {
+		log.Fatalf("Failed to reconnect to server: %v", err)
+	}
+
+	// Transfer to ws stream
+	wstream := transport.NewWstream(wsConn)
+	pConn := transport.NewPersistentConn(wstream)
+	s, err := yamux.Client(pConn, nil)
+	if err != nil {
+		pConn.Close()
 		log.Fatalf("Failed to create session: %v", err)
 	}
 	manager.NewSession(sid, pConn, s)
+
 	go func() {
 		defer pConn.Close()
 		defer s.Close()
@@ -38,7 +51,8 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 		for {
 			conn, err := s.Accept()
 			if err != nil {
-				log.Fatalf("Session [%s] closed: %v", sid, err)
+				log.Printf("Session [%s] closed: %v", sid, err)
+				return
 			}
 			wg.Go(func() {
 				defer conn.Close()
@@ -46,7 +60,7 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 			})
 		}
 	}()
-	log.Printf("✨ NetoKeep connects to server successfully!" )
+	log.Printf("✨ NetoKeep connects to server successfully!")
 
 	// Handle the session connection and reconnection
 	go func() {
@@ -58,53 +72,35 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 				if pendingSid != sid {
 					continue
 				}
-				log.Println("Received pending active signal, attempting to reconnect...")
+				log.Printf("Received pending active signal, attempting to reconnect...")
 				var success bool
 				for range 5 {
 					if ctx.Err() != nil {
 						return
 					}
-					wstream, err := dialRaw(ctx, sid, remoteAddr)
+
+					// Reconnecting
+					wsConn, _, err := websocket.DefaultDialer.Dial(remoteAddr, header)
 					if err != nil {
+						log.Printf("Failed to reconnect to server: %v", err)
 						time.Sleep(3 * time.Second)
 						continue
 					}
+					wstream := transport.NewWstream(wsConn)
 					manager.Reconnect(sid, wstream)
+					log.Printf("Reconnected successfully!")
 					success = true
-					log.Printf("Reconnected successfully! [ID: %s]", sid)
 					break
 				}
 				if !success {
-					log.Fatalf("Failed to reconnect to server after 5 attempts.")
+					log.Printf("Failed to reconnect to server after 5 attempts.")
+					return
 				}
 			}
 		}
 	}()
 
 	<-ctx.Done()
+	manager.Close()
 	wg.Wait()
-}
-
-// dialRaw establishes a new raw WebSocket connection and returns it as a net.Conn.
-// Used for reconnection — does NOT create a new PersistentConn or yamux session.
-func dialRaw(ctx context.Context, sid string, remoteAddr string) (net.Conn, error) {
-	header := http.Header{}
-	header.Add("X-Session-ID", sid)
-
-	wsConn, _, err := websocket.DefaultDialer.Dial(remoteAddr, header)
-	if err != nil {
-		log.Printf("Failed to reconnect to server: %v", err)
-		return nil, err
-	}
-	return transport.NewWstream(wsConn), nil
-}
-
-func createSession(ctx context.Context, sid string, remoteAddr string) (s *yamux.Session, pConn *transport.PersistentConn, err error) {
-	wstream, err := dialRaw(ctx, sid, remoteAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-	pConn = transport.NewPersistentConn(wstream)
-	s, _ = yamux.Client(pConn, nil)
-	return s, pConn, nil
 }

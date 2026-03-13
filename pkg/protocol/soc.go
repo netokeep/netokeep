@@ -15,9 +15,6 @@ import (
 	"sync"
 )
 
-
-
-
 type SocConn struct {
 	net.Conn
 	host string
@@ -48,11 +45,10 @@ const (
 	SshPattern SocPattern = 0x02
 )
 
-
 /*
 StartProxyListener create one http proxy server to receive local traffic from `listenPort`
 */
-func StartProxyListener(ctx context.Context, listenPort uint16, handler func(* SocConn)) error {
+func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*SocConn)) error {
 	var wg sync.WaitGroup
 	lc := net.ListenConfig{}
 	// Use local adress to avoid external connections
@@ -61,15 +57,16 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(* S
 	if err != nil {
 		log.Fatalf("[LISTENER] Error in listening port %d: %v", listenPort, err)
 	}
-	log.Printf("🌐 SSH listener started at port %d", listenPort)
+	log.Printf("🌐 HTTP proxy listener started at port %d", listenPort)
 
 	go func() {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
+				log.Printf("[LISTENER] Proxy listener closed.")
 				return
 			}
-			wg.Go(func ()  {
+			wg.Go(func() {
 				defer conn.Close()
 				// Handle the handshake of HTTP and return the conn with host and port
 				request, err := http.ReadRequest(bufio.NewReader(conn))
@@ -109,8 +106,8 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(* S
 					var buffer bytes.Buffer
 					request.Write(&buffer)
 
-					socConn.Conn = &PrependConn {
-						Conn: conn,
+					socConn.Conn = &PrependConn{
+						Conn:   conn,
 						buffer: buffer.Bytes(),
 					}
 				}
@@ -125,7 +122,7 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(* S
 	return nil
 }
 
-func StartSshListener(ctx context.Context, listenPort uint16, handler func(* SocConn)) error {
+func StartSshListener(ctx context.Context, listenPort uint16, handler func(*SocConn)) error {
 	var wg sync.WaitGroup
 	lc := net.ListenConfig{}
 	// Use local adress to avoid external connections
@@ -140,6 +137,7 @@ func StartSshListener(ctx context.Context, listenPort uint16, handler func(* Soc
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
+				log.Printf("[LISTENER] SSH listener closed.")
 				return
 			}
 			wg.Go(func() {
@@ -168,7 +166,7 @@ The format is as follows:
   - 1 byte: length of destination host
   - N bytes: destination host (domain or IP)
 */
-func (sc *SocConn)CreateHeader(pattern SocPattern) []byte {
+func (sc *SocConn) CreateHeader(pattern SocPattern) []byte {
 	header := make([]byte, 0, 1+2+1+len(sc.host))
 	header = append(header, byte(pattern))
 	header = binary.BigEndian.AppendUint16(header, sc.port)

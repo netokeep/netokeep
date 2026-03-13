@@ -22,7 +22,8 @@ type PersistentConn struct {
 	readMu  sync.Mutex
 	cond    *sync.Cond
 
-	raw net.Conn
+	raw    net.Conn
+	closed bool
 
 	State         ConnectionState
 	StateChangeCh chan ConnectionState
@@ -112,11 +113,23 @@ func (pc *PersistentConn) Close() error {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 
-	pc.setState(StateDisconnected)
+	if pc.closed {
+		return nil
+	}
+	pc.closed = true
+	pc.State = StateDisconnected
 	if pc.raw != nil {
 		pc.raw.Close()
 	}
 	pc.cond.Broadcast()
+
+	// Drain any pending state so the buffer has room, then send StateDisconnected.
+	select {
+	case <-pc.StateChangeCh:
+	default:
+	}
+	pc.StateChangeCh <- StateDisconnected
+	close(pc.StateChangeCh)
 	return nil
 }
 
@@ -125,13 +138,11 @@ setState safely updates the connection state and notifies listeners.
 It ensures that state changes are atomic and that listeners are notified of every change.
 */
 func (pc *PersistentConn) setState(state ConnectionState) {
-	if pc.State != state {
+	if pc.State != state && !pc.closed {
 		pc.State = state
 		select {
 		case pc.StateChangeCh <- state:
 		default:
-			// If the channel is full, it means the state change hasn't been consumed yet.
-			// We don't need to worry about it.
 		}
 	}
 }
