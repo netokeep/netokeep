@@ -31,22 +31,22 @@ func CreateStartCmd() *cobra.Command {
 			manager := session.NewSessionManager()
 
 			// TODO: Setup SSH Listener
-			go traffic.StartSshListener(ctx, sshPort, func(conn net.Conn) {
-				header := protocol.CreateSshHeader(conn)
+			go protocol.StartSshListener(ctx, sshPort, func(conn *protocol.SocConn) {
+				header := conn.CreateHeader(protocol.SshPattern)
 				// Select one accessible session to forward outgoing traffic
 				manager.Traffic2Session(conn, header)
 			})
 
 			traffic.StartClient(ctx, manager, remoteAddr, func(conn net.Conn) {
-				switch header := protocol.MatchHeader(conn); header {
+				switch protocol.ParseSocPattern(conn) {
 				/// The server will just actively send tcp request using channel
-				case protocol.SocksHeader:
+				case protocol.ProPattern:
 					host, port, err := protocol.ParseSocHeader(conn)
 					if err != nil {
 						log.Printf("Error in parse the header of soc: %v", err)
 						return
 					}
-					remoteConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+					remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)))
 					if err != nil {
 						log.Printf("Failed to connect to target %s:%d: %v", host, port, err)
 						return

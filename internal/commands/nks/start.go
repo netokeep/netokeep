@@ -32,16 +32,16 @@ func CreateStartCmd() *cobra.Command {
 			manager := session.NewSessionManager()
 
 			// Handle outgoing traffic
-			go traffic.StartSocksListener(ctx, tcpPort, func(conn *protocol.SocksConn) {
-				header := protocol.CreateSocHeader(conn)
+			go protocol.StartProxyListener(ctx, tcpPort, func(conn *protocol.SocConn) {
+				header := conn.CreateHeader(protocol.ProPattern)
 				// Select one accessible session to forward outgoing traffic
 				manager.Traffic2Session(conn, header)
 			})
 
 			traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
-				switch pattern := protocol.MatchHeader(conn); pattern {
+				switch protocol.ParseSocPattern(conn) {
 				// The client will just actively send ssh request using channel
-				case protocol.SshHeader:
+				case protocol.SshPattern:
 					// No need to parse header
 					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 					if err != nil {

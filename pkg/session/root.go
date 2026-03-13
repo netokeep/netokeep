@@ -82,8 +82,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		sm.mu.Lock()
 		if len(sm.connectedIDs) == 0 {
 			sm.mu.Unlock()
-			log.Printf("[SESSION] No available session, waiting for reconnection...")
-			clientConn.Close()
+			log.Printf("[SESSION] No available session, waiting for new connections...")
 			return
 		}
 
@@ -101,6 +100,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 			log.Printf("[SESSION] Session [%s] failed to open stream, falling back to another session...", sid)
 			continue
 		}
+		defer stream.Close()
 
 		// 3. Succeed in opening a stream, send the constructed header
 		_, err = stream.Write(header)

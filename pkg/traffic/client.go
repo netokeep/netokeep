@@ -63,12 +63,12 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 					if ctx.Err() != nil {
 						return
 					}
-					wsStream, err := dialRaw(ctx, sid, remoteAddr)
+					wstream, err := dialRaw(ctx, sid, remoteAddr)
 					if err != nil {
 						time.Sleep(3 * time.Second)
 						continue
 					}
-					manager.Reconnect(sid, wsStream)
+					manager.Reconnect(sid, wstream)
 					log.Printf("Reconnected successfully! [ID: %s]", sid)
 					break
 				}
@@ -92,15 +92,15 @@ func dialRaw(ctx context.Context, sid string, remoteAddr string) (net.Conn, erro
 		log.Printf("Failed to reconnect to server: %v", err)
 		return nil, err
 	}
-	return transport.NewWsStream(wsConn), nil
+	return transport.NewWstream(wsConn), nil
 }
 
 func createSession(ctx context.Context, sid string, remoteAddr string) (s *yamux.Session, pConn *transport.PersistentConn, err error) {
-	wsStream, err := dialRaw(ctx, sid, remoteAddr)
+	wstream, err := dialRaw(ctx, sid, remoteAddr)
 	if err != nil {
 		return nil, nil, err
 	}
-	pConn = transport.NewPersistentConn(wsStream)
+	pConn = transport.NewPersistentConn(wstream)
 	s, _ = yamux.Client(pConn, nil)
 	return s, pConn, nil
 }

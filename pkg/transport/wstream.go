@@ -7,22 +7,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type WsStream struct {
+type Wstream struct {
 	*websocket.Conn
 	reader io.Reader
 }
 
 /*
-WsStream wraps a websocket.
+Wstream wraps a websocket.
 
 Conn to implement the net.Conn interface,
 allowing it to be used as a regular network connection.
 */
-func NewWsStream(conn *websocket.Conn) *WsStream {
-	return &WsStream{Conn: conn}
+func NewWstream(conn *websocket.Conn) *Wstream {
+	return &Wstream{Conn: conn}
 }
 
-func (w *WsStream) Read(p []byte) (n int, err error) {
+func (w *Wstream) Read(p []byte) (n int, err error) {
 	if w.reader == nil {
 		_, r, err := w.NextReader()
 		if err != nil {
@@ -38,7 +38,7 @@ func (w *WsStream) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (w *WsStream) Write(p []byte) (n int, err error) {
+func (w *Wstream) Write(p []byte) (n int, err error) {
 	err = w.WriteMessage(websocket.BinaryMessage, p)
 	if err != nil {
 		return 0, err
@@ -46,12 +46,12 @@ func (w *WsStream) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (w *WsStream) SetDeadline(t time.Time) error {
+func (w *Wstream) SetDeadline(t time.Time) error {
 	return w.Conn.UnderlyingConn().SetDeadline(t)
 }
-func (w *WsStream) SetReadDeadline(t time.Time) error {
+func (w *Wstream) SetReadDeadline(t time.Time) error {
 	return w.Conn.UnderlyingConn().SetReadDeadline(t)
 }
-func (w *WsStream) SetWriteDeadline(t time.Time) error {
+func (w *Wstream) SetWriteDeadline(t time.Time) error {
 	return w.Conn.UnderlyingConn().SetWriteDeadline(t)
 }

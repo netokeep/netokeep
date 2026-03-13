@@ -27,16 +27,16 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 			log.Printf("Failed to upgrade HTTP to Ws: %v", err)
 			return
 		}
-		wsStream := transport.NewWsStream(wsConn)
+		wstream := transport.NewWstream(wsConn)
 
 		// Check whether reconnection
-		if manager.Reconnect(sid, wsStream) {
+		if manager.Reconnect(sid, wstream) {
 			log.Printf("Recorded session. Reconnected.")
 			return
 		}
 
 		// For new input, create a new session and bind it with the ws connection.
-		pConn := transport.NewPersistentConn(wsStream)
+		pConn := transport.NewPersistentConn(wstream)
 		s, _ := yamux.Server(pConn, nil)
 
 		if !manager.NewSession(sid, pConn, s) {
