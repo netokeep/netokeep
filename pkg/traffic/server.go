@@ -18,8 +18,9 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 	var wg sync.WaitGroup
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		sid, ok := transport.IsWsRequest(w, r)
+		sid, ipAddr, ok := transport.IsWsRequest(w, r)
 		if !ok {
+			log.Printf("Invalid request from: %s", ipAddr)
 			return
 		}
 		wsConn, err := transport.Upgrade2Ws(w, r)
@@ -27,6 +28,7 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 			log.Printf("Failed to upgrade HTTP to Ws: %v", err)
 			return
 		}
+		log.Printf("✨ New connection received from: %s", ipAddr)
 		wstream := transport.NewWstream(wsConn)
 
 		// Check whether reconnection

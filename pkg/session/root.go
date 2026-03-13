@@ -45,7 +45,6 @@ func (sm *SessionManager) NewSession(sid string, pConn *transport.PersistentConn
 	// Listen for session state change in a separate goroutine
 	go func() {
 		for state := range user.PC.StateChangeCh {
-			log.Printf("Session [%s] state changed to: %d", sid, state)
 			switch state {
 			case transport.StateDisconnected:
 				sm.mu.Lock()

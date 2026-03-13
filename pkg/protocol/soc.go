@@ -50,7 +50,7 @@ const (
 
 
 /*
-StartProxyListener create one http proxy server to receive local traffic form `listenPort`
+StartProxyListener create one http proxy server to receive local traffic from `listenPort`
 */
 func StartProxyListener(ctx context.Context, listenPort uint16, handler func(* SocConn)) error {
 	var wg sync.WaitGroup
