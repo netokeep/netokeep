@@ -59,7 +59,8 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 					continue
 				}
 				log.Println("Received pending active signal, attempting to reconnect...")
-				for i := 0; i < 5; i++ {
+				var success bool
+				for range 5 {
 					if ctx.Err() != nil {
 						return
 					}
@@ -69,10 +70,13 @@ func StartClient(ctx context.Context, manager *session.SessionManager, remoteAdd
 						continue
 					}
 					manager.Reconnect(sid, wstream)
+					success = true
 					log.Printf("Reconnected successfully! [ID: %s]", sid)
 					break
 				}
-				log.Fatalf("Failed to reconnect to server after 5 attempts.")
+				if !success {
+					log.Fatalf("Failed to reconnect to server after 5 attempts.")
+				}
 			}
 		}
 	}()
