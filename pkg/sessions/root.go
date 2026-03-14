@@ -11,11 +11,11 @@ import (
 )
 
 type SessionManager struct {
-	sessions     sync.Map
+	sessions sync.Map
 }
 
 type UserSession struct {
-	session *yamux.Session
+	session   *yamux.Session
 	arwstream *transport.ARWStream
 }
 

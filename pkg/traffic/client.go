@@ -36,10 +36,9 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 	if err != nil {
 		log.Fatalf("Failed to reconnect to server: %v", err)
 	}
-	log.Printf("✨ NetoKeep connects to server successfully!")
 
 	// Create a yamux client session to store the ws connection
-	arwstream := transport.NewARWStream(wsConn, dailer)
+	arwstream := transport.NewARWStream(ctx, wsConn, dailer)
 	session, err := yamux.Client(arwstream, nil)
 	if err != nil {
 		arwstream.Close()

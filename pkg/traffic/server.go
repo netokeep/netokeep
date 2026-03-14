@@ -35,7 +35,7 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 			manager.UpdateSession(sid, wsConn)
 			return
 		}
-		arwstream := transport.NewARWStream(wsConn, nil)
+		arwstream := transport.NewARWStream(ctx, wsConn, nil)
 		session, err := yamux.Server(arwstream, nil)
 		if err != nil {
 			arwstream.Close()
