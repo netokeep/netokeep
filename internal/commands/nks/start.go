@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 	"netokeep/pkg/protocol"
-	"netokeep/pkg/session"
+	"netokeep/pkg/sessions"
 	"netokeep/pkg/traffic"
 	"netokeep/pkg/transport"
 	"os"
@@ -29,7 +29,7 @@ func CreateStartCmd() *cobra.Command {
 			defer stop()
 
 			// Create a session manager to handle all user sessions
-			manager := session.NewSessionManager()
+			manager := sessions.NewSessionManager()
 
 			// Handle outgoing traffic
 			go protocol.StartProxyListener(ctx, tcpPort, func(conn *protocol.SocConn) {

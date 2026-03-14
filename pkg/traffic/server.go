@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"netokeep/pkg/session"
+	"netokeep/pkg/sessions"
 	"netokeep/pkg/transport"
 
 	"github.com/hashicorp/yamux"
 )
 
-func StartServer(ctx context.Context, manager *session.SessionManager, sshPort uint16, outPort uint16, handler func(conn net.Conn)) {
+func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort uint16, outPort uint16, handler func(conn net.Conn)) {
 	var wg sync.WaitGroup
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -30,30 +30,26 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 			return
 		}
 		log.Printf("✨ New connection received from: %s", ipAddr)
-		wstream := transport.NewWstream(wsConn)
-
-		// Check whether reconnection
-		if manager.Reconnect(sid, wstream) {
-			log.Printf("Recorded session. Reconnected.")
+		if ok := manager.HasSession(sid); ok {
+			log.Printf("Session with ID [%s] already exists, closing the new connection.", sid)
+			manager.UpdateSession(sid, wsConn)
 			return
 		}
-
-		// For new input, create a new session and bind it with the ws connection.
-		pConn := transport.NewPersistentConn(wstream)
-		s, err := yamux.Server(pConn, nil)
+		arwstream := transport.NewARWStream(wsConn, nil)
+		session, err := yamux.Server(arwstream, nil)
 		if err != nil {
-			pConn.Close()
+			arwstream.Close()
 			log.Printf("Failed to create session: %v", err)
 			return
 		}
-		manager.NewSession(sid, pConn, s)
+		manager.NewSession(sid, session, arwstream)
 
 		go func() {
-			defer pConn.Close()
-			defer s.Close()
+			defer arwstream.Close()
+			defer session.Close()
 
 			for {
-				conn, err := s.Accept()
+				conn, err := session.Accept()
 				if err != nil {
 					log.Printf("Session [%s] closed: %v", sid, err)
 					return
@@ -67,6 +63,7 @@ func StartServer(ctx context.Context, manager *session.SessionManager, sshPort u
 		}()
 	})
 
+	// Start the HTTP server to listen for incoming WebSocket connections.
 	server := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%d", outPort),
 		Handler: mux,

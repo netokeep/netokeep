@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 	"netokeep/pkg/protocol"
-	"netokeep/pkg/session"
+	"netokeep/pkg/sessions"
 	"netokeep/pkg/traffic"
 	"netokeep/pkg/transport"
 	"os"
@@ -28,7 +28,7 @@ func CreateStartCmd() *cobra.Command {
 			defer stop()
 
 			// Create a session manager to handle all user sessions
-			manager := session.NewSessionManager()
+			manager := sessions.NewSessionManager()
 
 			// TODO: Setup SSH Listener
 			go protocol.StartSshListener(ctx, sshPort, func(conn *protocol.SocConn) {
