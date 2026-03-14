@@ -108,8 +108,8 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		success = true
 		return false // stop ranging after successfully forwarding the traffic
 	})
-	if success {
-		log.Printf("[SESSION] Successfully forwarded traffic to session.")
-	} else {
-		log.Printf("[SESSION] No available session, waiting for new connections...")	}
+	if !success {
+		log.Printf("[SESSION] No available session, waiting for new connections...")
+		clientConn.Close()
+	}
 }

@@ -37,12 +37,10 @@ func CreateStartCmd() *cobra.Command {
 			})
 
 			traffic.StartClient(ctx, manager, remoteAddr, func(conn net.Conn) {
-				println("Received new connection for traffic forwarding")
 				switch protocol.ParseSocPattern(conn) {
 				/// The server will just actively send tcp request using channel
 				case protocol.ProPattern:
 					host, port, err := protocol.ParseSocHeader(conn)
-					println("Parsed header for ProPattern, host:", host, "port:", port)
 					if err != nil {
 						log.Printf("Error in parse the header of soc: %v", err)
 						return
