@@ -139,6 +139,7 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 		}
 		success = true
 		as.UpdateWsConn(newConn)
+		log.Printf("[ARWS] Reconnected successfully!")
 		break
 	}
 	if !success {

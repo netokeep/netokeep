@@ -47,6 +47,8 @@ const (
 
 /*
 StartProxyListener create one http proxy server to receive local traffic from `listenPort`
+
+StartProxy dose not defer the connection, the caller should handle the connection lifecycle in the handler function.
 */
 func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*SocConn)) error {
 	var wg sync.WaitGroup
@@ -67,11 +69,11 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*So
 				return
 			}
 			wg.Go(func() {
-				defer conn.Close()
 				// Handle the handshake of HTTP and return the conn with host and port
 				request, err := http.ReadRequest(bufio.NewReader(conn))
 				if err != nil {
 					log.Printf("[LISTENER] Error in reading the request header: %v", err)
+					conn.Close()
 					return
 				}
 				host, portStr, err := net.SplitHostPort(request.Host)
@@ -99,6 +101,7 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*So
 					_, err = conn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
 					if err != nil {
 						log.Printf("[LISTENER] Error in CONNECT request handshake: %v", err)
+						conn.Close()
 						return
 					}
 				} else {
@@ -122,6 +125,11 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*So
 	return nil
 }
 
+/*
+StartSshListener creates a listener for ssh connection, and the connection will be handled in the handler function.
+
+StartSshListener does not defer the connection, the caller should handle the connection lifecycle in the handler function.
+*/
 func StartSshListener(ctx context.Context, listenPort uint16, handler func(*SocConn)) error {
 	var wg sync.WaitGroup
 	lc := net.ListenConfig{}
@@ -141,7 +149,6 @@ func StartSshListener(ctx context.Context, listenPort uint16, handler func(*SocC
 				return
 			}
 			wg.Go(func() {
-				defer conn.Close()
 				handler(&SocConn{
 					Conn: conn,
 					host: "placeholder",

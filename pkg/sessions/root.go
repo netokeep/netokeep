@@ -102,6 +102,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		// Entering Relay, exit after completion
 		go func() {
 			transport.Relay(clientConn, stream)
+			clientConn.Close()
 			stream.Close()
 		}()
 		success = true
@@ -110,6 +111,5 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 	if success {
 		log.Printf("[SESSION] Successfully forwarded traffic to session.")
 	} else {
-		log.Printf("[SESSION] No available session, waiting for new connections...")
-	}
+		log.Printf("[SESSION] No available session, waiting for new connections...")	}
 }
