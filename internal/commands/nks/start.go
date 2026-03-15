@@ -58,7 +58,7 @@ func CreateStartCmd() *cobra.Command {
 	}
 
 	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 22, "port to proxy SSH traffic.")
-	startCmd.Flags().Uint16VarP(&tcpPort, "tcpPort", "t", 1080, "port to proxy TCP traffic.")
+	startCmd.Flags().Uint16VarP(&tcpPort, "tcpPort", "t", 7890, "port to proxy TCP traffic.")
 	startCmd.Flags().Uint16VarP(&outPort, "outPort", "o", 7222, "port to forward traffic.")
 
 	return startCmd

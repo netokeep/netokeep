@@ -29,14 +29,34 @@ rm -f netokeep-Linux-amd64.sh
 ## Quick start
 
 ### Server Part
-
-Setup the NetoKeep server
-
-> Please ensure your SSH service is running and accessible on the given port.
-> Run `export ALL_PROXY=socks5://127.0.0.1:1080` to proxy your TCP traffic in your terminal.
+#### 1. Install dependencies
 
 ```bash
-nks start -s 22 -t 1080 -o 7222
+read -r -p "Input the SSH public key (press Enter to skip): " USER_INPUT
+if [ -n "$USER_INPUT" ]; then
+	mkdir -p $HOME/.ssh
+	touch $HOME/.ssh/authorized_keys
+	chmod 700 $HOME/.ssh
+	chmod 600 $HOME/.ssh/authorized_keys
+	# Add the public key to authorized_keys if it's not already there
+	grep -qxF "$USER_INPUT" $HOME/.ssh/authorized_keys || echo "$USER_INPUT" >> $HOME/.ssh/authorized_keys
+fi
+
+apt update -y
+apt install -y sudo openssh-server
+ssh-keygen -A
+```
+
+#### 2. Start SSH service
+```bash
+mkdir -p /run/sshd
+sudo /usr/sbin/sshd -D -e
+```
+
+#### 3. Setup the NetoKeep server
+Open a new terminal and run:
+```bash
+nks start [-s 22] [-t 7890] [-o 7222]
 ```
 Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
@@ -55,7 +75,11 @@ nk start -s 2222 -r <HTTP_LINK>
 ```bash
 ssh -p 2222 root@localhost
 ```
-
+> If you want to enable Internet access for your container,
+> run the following command after connecting to your container.
+> ```bash
+> export all_proxy=http://localhost:7890
+> ```
 
 And enjoy!
 
