@@ -6,27 +6,31 @@ import (
 	"sync"
 )
 
+var bufferPool = sync.Pool{
+    New: func() any {
+        return make([]byte, 1*1024*1024)
+    },
+}
+
 /*
 Relay helps to forward data between two net.Conn connections in both directions.
 */
 func Relay(left net.Conn, right net.Conn) {
-	var wg sync.WaitGroup
-	wg.Add(2)
+    var wg sync.WaitGroup
+    wg.Add(2)
 
-	// Read the left connection and write to the right connection
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(right, left)
-		right.Close()
-	}()
+    copyDir := func(dst net.Conn, src net.Conn) {
+        defer wg.Done()
+        defer dst.Close()
 
-	// Read the right connection and write to the left connection
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(left, right)
-		left.Close()
-	}()
+        buf := bufferPool.Get().([]byte)
+        defer bufferPool.Put(buf)
 
-	// Wait for both directions to finish
-	wg.Wait()
+        _, _ = io.CopyBuffer(dst, src, buf)
+    }
+
+    go copyDir(right, left)
+    go copyDir(left, right)
+
+    wg.Wait()
 }
