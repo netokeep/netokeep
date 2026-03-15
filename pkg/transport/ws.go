@@ -11,8 +11,8 @@ Upgrade2Ws upgrade the HTTP server connection to WebSocket
 func Upgrade2Ws(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	// TODO: configure the size and the domain verification
 	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024 * 32,
-		WriteBufferSize: 1024 * 32,
+		ReadBufferSize:  256 * 1024,
+		WriteBufferSize: 256 * 1024,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
