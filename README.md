@@ -20,10 +20,10 @@ You can download the latest release of NetoKeep and install it. It contains both
 
 ```bash
 # Linux AMD64
-wget github.com/netokeep/netokeep/releases/latest/download/netokeep-Linux-amd64.sh
-chmod +x netokeep-Linux-amd64.sh
-sudo ./netokeep-Linux-amd64.sh
-rm -f netokeep-Linux-amd64.sh
+wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64.sh
+chmod +x netokeep-linux-amd64.sh
+sudo ./netokeep-linux-amd64.sh
+rm -f netokeep-linux-amd64.sh
 ```
 
 ## Quick start
