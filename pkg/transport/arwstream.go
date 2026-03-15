@@ -142,7 +142,7 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 		break
 	}
 	if !success {
-		log.Printf("[ARWS] Reconnection attempts failed 5 times, closing session.")
+		log.Fatalf("[ARWS] Reconnection attempts failed 5 times, closing session.")
 		as.Close()
 	}
 }
