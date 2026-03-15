@@ -1,4 +1,4 @@
-﻿package transport
+package transport
 
 /*
 TODO: The current version treats playback, real-time writing, and ping-pong equally.
