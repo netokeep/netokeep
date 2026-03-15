@@ -309,10 +309,10 @@ func (as *ARWStream) Write(p []byte) (n int, err error) {
 	}
 	seq := as.sendSeq
 	as.sendSeq += uint64(len(p))
-	// Copy p so caller can reuse the buffer after Write returns
-	payload := make([]byte, len(p))
-	copy(payload, p)
-	as.sendQue = append(as.sendQue, sendSegment{seq: seq, data: payload})
+	// Allocate one buffer: header + payload; sendQue holds frame[16:] to avoid double copy
+	frame := make([]byte, FrameHeaderSize+len(p))
+	copy(frame[16:], p)
+	as.sendQue = append(as.sendQue, sendSegment{seq: seq, data: frame[16:]})
 	as.mu.Unlock()
 
 	for {
@@ -325,11 +325,9 @@ func (as *ARWStream) Write(p []byte) (n int, err error) {
 		exp := as.expSeq
 		as.mu.Unlock()
 
-		// Construct the frame: Seq(8) + Ack(8) + Payload
-		frame := make([]byte, FrameHeaderSize+len(payload))
+		// Fill in the frame header (payload already in frame[16:])
 		binary.BigEndian.PutUint64(frame[0:8], seq)
 		binary.BigEndian.PutUint64(frame[8:16], exp)
-		copy(frame[16:], payload)
 
 		as.writemu.Lock()
 		err = conn.WriteMessage(websocket.BinaryMessage, frame)
