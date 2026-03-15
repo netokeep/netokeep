@@ -42,7 +42,11 @@ func CreateStartCmd() *cobra.Command {
 				switch protocol.ParseSocPattern(conn) {
 				// The client will just actively send ssh request using channel
 				case protocol.SshPattern:
-					// No need to parse header
+					// Consume the remaining soc header to avoid leaking it into SSH payload.
+					if _, _, err := protocol.ParseSocHeader(conn); err != nil {
+						log.Printf("Error in parse the header of soc: %v", err)
+						return
+					}
 					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 					if err != nil {
 						log.Printf("Failed to connect to local ssh server: %v", err)
