@@ -32,7 +32,6 @@ type ARWStream struct {
 
 	mu      sync.Mutex
 	writemu sync.Mutex
-	readmu  sync.Mutex
 	dialer  Dialer
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -126,7 +125,7 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 
 	if dialer == nil {
 		// For server side, if dialer is nil, it means we rely on external UpdateWsConn to trigger reconnection
-		log.Printf("[ARWS] Waiting for external UpdateWsConn to trigger reconnection...")
+		log.Printf("Session closed, waiting for reconnection...")
 		return
 	}
 	for range 5 {
@@ -143,9 +142,8 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 		break
 	}
 	if !success {
-		log.Printf("[ARWS] Reconnection attempts failed for 5 times, giving up.")
+		log.Printf("[ARWS] Reconnection attempts failed 5 times, closing session.")
 		as.Close()
-		as.cancel()
 	}
 }
 
@@ -170,9 +168,7 @@ func (as *ARWStream) wsReadLoop() {
 		}
 		conn := as.Conn
 		as.mu.Unlock()
-		as.readmu.Lock()
 		_, message, err := conn.ReadMessage()
-		as.readmu.Unlock()
 		if err != nil {
 			as.mu.Lock()
 			if !as.isClosed && as.Conn == conn {
@@ -238,12 +234,20 @@ func (as *ARWStream) wsReadLoop() {
 
 func (as *ARWStream) Close() error {
 	as.mu.Lock()
-	defer as.mu.Unlock()
+	if as.isClosed {
+		as.mu.Unlock()
+		return nil
+	}
 	as.isClosed = true
-	as.dataReady.Broadcast() // Wake up any waiting goroutines
+	as.cancel()
+
+	conn := as.Conn
+	// Wake up any waiting goroutines
+	as.dataReady.Broadcast()
 	as.reconnected.Broadcast()
-	if as.Conn != nil {
-		return as.Conn.Close()
+	as.mu.Unlock()
+	if conn != nil {
+		return conn.Close()
 	}
 	return nil
 }

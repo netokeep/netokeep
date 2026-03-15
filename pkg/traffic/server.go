@@ -17,6 +17,12 @@ import (
 
 func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort uint16, outPort uint16, handler func(conn net.Conn)) {
 	var wg sync.WaitGroup
+	// Setup yamux config
+	cfg := yamux.DefaultConfig()
+	// cfg.LogOutput = io.Discard
+	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
+	cfg.ConnectionWriteTimeout = 20 * time.Second
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		sid, ipAddr, ok := transport.IsWsRequest(w, r)
@@ -31,12 +37,12 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 		}
 		log.Printf("✨ New connection received from: %s", ipAddr)
 		if ok := manager.HasSession(sid); ok {
-			log.Printf("Session with ID [%s] already exists, closing the new connection.", sid)
+			log.Printf("Session already exists, updating ws connection.")
 			manager.UpdateSession(sid, wsConn)
 			return
 		}
 		arwstream := transport.NewARWStream(ctx, wsConn, nil)
-		session, err := yamux.Server(arwstream, nil)
+		session, err := yamux.Server(arwstream, cfg)
 		if err != nil {
 			arwstream.Close()
 			log.Printf("Failed to create session: %v", err)
@@ -47,6 +53,7 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 		go func() {
 			defer arwstream.Close()
 			defer session.Close()
+			defer manager.RemoveSession(sid)
 
 			for {
 				conn, err := session.Accept()
