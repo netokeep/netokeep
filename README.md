@@ -50,6 +50,8 @@ ssh-keygen -A
 #### 2. Start SSH service
 ```bash
 mkdir -p /run/sshd
+# pid=$(pgrep -xo sshd)
+# [ -n "$pid" ] && kill "$pid"
 sudo /usr/sbin/sshd -D -e
 ```
 
@@ -73,6 +75,7 @@ nk start -s 2222 -r <HTTP_LINK>
 #### 2. Connect to your container using SSH
 
 ```bash
+# ssh-keygen -R "[localhost]:2222"
 ssh -p 2222 root@localhost
 ```
 > If you want to enable Internet access for your container,
@@ -82,6 +85,12 @@ ssh -p 2222 root@localhost
 > ```
 
 And enjoy!
+
+> [!TIP]
+> If your container cannot download the VS Code Server, you can add the following to your VS Code settings to use the local proxy for downloading:
+> ```json
+>	"remote.SSH.localServerDownload": "always",
+> ```
 
 ## Acknowledgement
 
