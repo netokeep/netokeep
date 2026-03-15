@@ -89,7 +89,9 @@ And enjoy!
 > [!TIP]
 > If your container cannot download the VS Code Server, you can add the following to your VS Code settings to use the local proxy for downloading:
 > ```json
+> {
 >	"remote.SSH.localServerDownload": "always",
+> }
 > ```
 
 ## Acknowledgement
