@@ -1,4 +1,4 @@
-# netokeep
+# NetoKeep
 
 Setup SSH tunnels and TCP proxies to keep your restricted containers connected to the outside world.
 
@@ -32,6 +32,7 @@ rm -f netokeep-linux-amd64.sh
 #### 1. Install dependencies
 
 ```bash
+# Add your pubKey into ssh config 添加你的客户端公钥到ssh配置文件中
 read -r -p "Input the SSH public key (press Enter to skip): " USER_INPUT
 if [ -n "$USER_INPUT" ]; then
 	mkdir -p $HOME/.ssh
@@ -41,24 +42,29 @@ if [ -n "$USER_INPUT" ]; then
 	# Add the public key to authorized_keys if it's not already there
 	grep -qxF "$USER_INPUT" $HOME/.ssh/authorized_keys || echo "$USER_INPUT" >> $HOME/.ssh/authorized_keys
 fi
-
+# Install tools 安装工具
 apt update -y
-apt install -y sudo openssh-server
+apt install -y sudo openssh-server tmux
 ssh-keygen -A
 ```
 
 #### 2. Start SSH service
 ```bash
-mkdir -p /run/sshd
-# pid=$(pgrep -xo sshd)
-# [ -n "$pid" ] && kill "$pid"
-sudo /usr/sbin/sshd -D -e
+sudo -v && \
+tmux has-session -t sshd 2>/dev/null || \
+tmux new-session -d -s sshd \
+  "sudo mkdir -p /run/sshd && sudo /usr/sbin/sshd -D -e"
 ```
 
 #### 3. Setup the NetoKeep server
 Open a new terminal and run:
 ```bash
-nks start [-s 22] [-t 7890] [-o 7222]
+# s: The port for your SSH service
+# t: The TCP proxy port (protocol: HTTP)
+# o: The forwarding port for SSH traffc and Proxy traffic
+tmux has-session -t nks 2>/dev/null || \
+tmux new-session -d -s nks \
+  "nks start -s 22 -t 7890 -o 7222"
 ```
 Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
@@ -80,6 +86,7 @@ ssh -p 2222 root@localhost
 ```
 > If you want to enable Internet access for your container,
 > run the following command after connecting to your container.
+> (You can also write them into your `.bashrc` file.)
 > ```bash
 > export ALL_PROXY=http://127.0.0.1:7890
 > export HTTP_PROXY=http://127.0.0.1:7890
