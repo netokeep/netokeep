@@ -33,13 +33,13 @@ func IsWsRequest(w http.ResponseWriter, r *http.Request) (string, string, bool) 
 	// Validate the request
 	if r.Header.Get("Upgrade") != "websocket" {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
-		return "", "", false
+		return "", client, false
 	}
 
 	// Find the session ID
 	sid := r.Header.Get("X-Session-ID")
 	if sid == "" {
-		return "", "", false
+		return "", client, false
 	}
 
 	return sid, client, true
