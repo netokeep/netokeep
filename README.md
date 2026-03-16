@@ -19,7 +19,8 @@ You can download the latest release of NetoKeep and install it. It contains both
 下载并安装最新版本的 NetoKeep，它包含服务器和客户端两部分。
 
 ```bash
-# Linux AMD64
+# This command is for Linux AMD64.
+# Download the latest release for based on your system
 wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64.sh
 chmod +x netokeep-linux-amd64.sh
 sudo ./netokeep-linux-amd64.sh
@@ -33,15 +34,9 @@ rm -f netokeep-linux-amd64.sh
 
 ```bash
 # Add your pubKey into ssh config 添加你的客户端公钥到ssh配置文件中
-read -r -p "Input the SSH public key (press Enter to skip): " USER_INPUT
-if [ -n "$USER_INPUT" ]; then
-	mkdir -p $HOME/.ssh
-	touch $HOME/.ssh/authorized_keys
-	chmod 700 $HOME/.ssh
-	chmod 600 $HOME/.ssh/authorized_keys
-	# Add the public key to authorized_keys if it's not already there
-	grep -qxF "$USER_INPUT" $HOME/.ssh/authorized_keys || echo "$USER_INPUT" >> $HOME/.ssh/authorized_keys
-fi
+read -r -p "Input SSH public key (Enter to skip): " K
+[ -n "$K" ] && install -d -m 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+[ -n "$K" ] && (grep -qxF "$K" ~/.ssh/authorized_keys 2>/dev/null || echo "$K" >> ~/.ssh/authorized_keys)
 # Install tools 安装工具
 apt update -y
 apt install -y sudo openssh-server tmux
