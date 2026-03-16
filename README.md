@@ -81,7 +81,9 @@ ssh -p 2222 root@localhost
 > If you want to enable Internet access for your container,
 > run the following command after connecting to your container.
 > ```bash
-> export all_proxy=http://localhost:7890
+> export all_proxy=http://127.0.0.1:7890
+> export HTTP_PROXY=http://127.0.0.1:7890
+> export HTTPS_PROXY=http://127.0.0.1:7890
 > ```
 
 And enjoy!
