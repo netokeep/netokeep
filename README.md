@@ -1,5 +1,10 @@
 # NetoKeep
 
+[![go](https://img.shields.io/github/go-mod/go-version/netokeep/netokeep)](https://golang.org/)
+[![license](https://img.shields.io/github/license/netokeep/netokeep)](LICENSE)
+[![release](https://img.shields.io/github/v/release/netokeep/netokeep?color=green)](https://github.com/netokeep/netokeep/releases)
+![downloads](https://img.shields.io/github/downloads/netokeep/netokeep/total)
+
 Setup SSH tunnels and TCP proxies to keep your restricted containers connected to the outside world.
 
 在受限容器中设置 SSH 隧道和 TCP 代理，以保持它们与外界的连接。
