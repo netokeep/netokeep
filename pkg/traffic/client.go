@@ -9,7 +9,6 @@ import (
 	"netokeep/pkg/transport"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -23,8 +22,8 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
+	cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
-	cfg.ConnectionWriteTimeout = 20 * time.Second
 
 	// Process the remote address to ensure it has the correct WebSocket scheme
 	if strings.Contains(remoteAddr, "://") {
@@ -40,7 +39,7 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 	}
 	wsConn, err := dailer()
 	if err != nil {
-		log.Fatalf("Failed to reconnect to server: %v", err)
+		log.Fatalf("Failed to connect to server: %v", err)
 	}
 
 	// Create a yamux client session to store the ws connection
@@ -53,8 +52,6 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 	manager.NewSession(sid, session, arwstream)
 
 	go func() {
-		defer arwstream.Close()
-		defer session.Close()
 		defer manager.RemoveSession(sid)
 
 		for {

@@ -20,8 +20,8 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
+	cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
-	cfg.ConnectionWriteTimeout = 20 * time.Second
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +51,6 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 		manager.NewSession(sid, session, arwstream)
 
 		go func() {
-			defer arwstream.Close()
-			defer session.Close()
 			defer manager.RemoveSession(sid)
 
 			for {
@@ -76,8 +74,8 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 		Handler: mux,
 	}
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Printf("NetoKeep service stopped: %v", err)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("NetoKeep service stopped with unexpected error: %v", err)
 			return
 		}
 	}()
