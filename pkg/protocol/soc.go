@@ -20,6 +20,7 @@ type SocConn struct {
 	host string
 	port uint16
 }
+
 /*
 PrependConn is used to replay the handshake data cosumed in the proxy listener
 */

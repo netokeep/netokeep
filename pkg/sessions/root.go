@@ -74,7 +74,7 @@ func (sm *SessionManager) RemoveSession(sid string) {
 /*
 Traffic2Session allows you to push the `clientConn` into one available session.
 
-Returns if no connection is available.
+It closes the passed connection if no connection is available.
 */
 func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 	var success bool

@@ -30,6 +30,7 @@ func CreateStartCmd() *cobra.Command {
 			// Create a session manager to handle all user sessions
 			manager := sessions.NewSessionManager()
 
+			// Handle SSH request
 			go protocol.StartSshListener(ctx, sshPort, func(conn *protocol.SocConn) {
 				header := conn.CreateSocHeader(protocol.SshPattern)
 				// Select one accessible session to forward outgoing traffic

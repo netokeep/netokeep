@@ -5,6 +5,8 @@
 .vscode/
 .idea/
 
+# Cache files
+.gocache/
 
 # Build files
 release/
