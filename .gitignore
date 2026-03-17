@@ -8,3 +8,6 @@
 
 # Build files
 release/
+
+# Validation files
+validation/

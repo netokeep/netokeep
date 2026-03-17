@@ -20,7 +20,9 @@ type SocConn struct {
 	host string
 	port uint16
 }
-
+/*
+PrependConn is used to replay the handshake data cosumed in the proxy listener
+*/
 type PrependConn struct {
 	net.Conn
 	buffer []byte
@@ -165,7 +167,7 @@ func StartSshListener(ctx context.Context, listenPort uint16, handler func(*SocC
 }
 
 /*
-CreateHeader creates a header for simple protocol called soc.
+CreateSocHeader creates a header for simple protocol called soc.
 
 The format is as follows:
   - 1 byte: header type (sock identification)
@@ -173,7 +175,7 @@ The format is as follows:
   - 1 byte: length of destination host
   - N bytes: destination host (domain or IP)
 */
-func (sc *SocConn) CreateHeader(pattern SocPattern) []byte {
+func (sc *SocConn) CreateSocHeader(pattern SocPattern) []byte {
 	header := make([]byte, 0, 1+2+1+len(sc.host))
 	header = append(header, byte(pattern))
 	header = binary.BigEndian.AppendUint16(header, sc.port)
@@ -183,37 +185,27 @@ func (sc *SocConn) CreateHeader(pattern SocPattern) []byte {
 	return header
 }
 
-func ParseSocPattern(conn net.Conn) SocPattern {
-	buf := make([]byte, 1)
-	n, err := io.ReadFull(conn, buf)
-	if err != nil || n == 0 {
-		log.Printf("[SOC] Failed to parse the request pattern: %v", err)
-		return UnknownPattern
-	}
-	return SocPattern(buf[0])
-}
-
 /*
 ParseSocHeader reads the soc header from the connection and returns the destination host and port.
-*/
-func ParseSocHeader(conn net.Conn) (string, uint16, error) {
-	portBuf := make([]byte, 2)
-	if _, err := io.ReadFull(conn, portBuf); err != nil {
-		return "", 0, errors.New("failed to read host port")
-	}
-	port := binary.BigEndian.Uint16(portBuf)
 
-	lenBuf := make([]byte, 1)
-	if _, err := io.ReadFull(conn, lenBuf); err != nil {
-		return "", 0, errors.New("failed to read the length of host")
+Returns SocPattern, host, port and error.
+
+The caller can use the pattern to determine how to handle the connection.
+*/
+func ParseSocHeader(conn net.Conn) (SocPattern, string, uint16, error) {
+	var headerBuf [4]byte
+	if _, err := io.ReadFull(conn, headerBuf[:]); err != nil {
+		return UnknownPattern, "", 0, errors.New("failed to read soc header")
 	}
-	hostLen := int(lenBuf[0])
+	pattern := SocPattern(headerBuf[0])
+	port := binary.BigEndian.Uint16(headerBuf[1:3])
+	hostLen := int(headerBuf[3])
 
 	hostBuf := make([]byte, hostLen)
 	if _, err := io.ReadFull(conn, hostBuf); err != nil {
-		return "", 0, errors.New("failed to read host name")
+		return pattern, "", 0, errors.New("failed to read host name")
 	}
 	host := string(hostBuf)
 
-	return host, port, nil
+	return pattern, host, port, nil
 }

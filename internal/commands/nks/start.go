@@ -33,20 +33,21 @@ func CreateStartCmd() *cobra.Command {
 
 			// Handle outgoing traffic
 			go protocol.StartProxyListener(ctx, tcpPort, func(conn *protocol.SocConn) {
-				header := conn.CreateHeader(protocol.ProPattern)
+				header := conn.CreateSocHeader(protocol.ProPattern)
 				// Select one accessible session to forward outgoing traffic
 				manager.Traffic2Session(conn, header)
 			})
 
 			traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
-				switch protocol.ParseSocPattern(conn) {
+				pattern, _, _, err := protocol.ParseSocHeader(conn)
+				if err != nil {
+					log.Printf("Failed to initialize the connection: %v", err)
+					return
+				}
+				switch pattern {
 				// The client will just actively send ssh request using channel
 				case protocol.SshPattern:
-					// Consume the remaining soc header to avoid leaking it into SSH payload.
-					if _, _, err := protocol.ParseSocHeader(conn); err != nil {
-						log.Printf("Error in parse the header of soc: %v", err)
-						return
-					}
+					// For ssh request, the host and port in header are meaningless.
 					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 					if err != nil {
 						log.Printf("Failed to connect to local ssh server: %v", err)
