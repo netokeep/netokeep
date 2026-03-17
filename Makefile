@@ -1,4 +1,4 @@
-VERSION := 0.4.0
+VERSION := 0.4.1
 PACKAGE_NAME := netokeep
 DISPLAY_NAME := "NetoKeep"
 
