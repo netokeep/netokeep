@@ -28,7 +28,7 @@ You can download the latest release of NetoKeep and install it. It contains both
 # Download the latest release for based on your system
 wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64.sh
 chmod +x netokeep-linux-amd64.sh
-sudo ./netokeep-linux-amd64.sh
+./netokeep-linux-amd64.sh
 rm -f netokeep-linux-amd64.sh
 ```
 
