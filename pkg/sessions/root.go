@@ -5,6 +5,7 @@ import (
 	"net"
 	"netokeep/pkg/transport"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
@@ -15,8 +16,9 @@ type SessionManager struct {
 }
 
 type UserSession struct {
-	session   *yamux.Session
-	arwstream *transport.ARWStream
+	session        *yamux.Session
+	arwstream      *transport.ARWStream
+	forwardTraffic atomic.Bool
 }
 
 /*
@@ -39,11 +41,14 @@ func (sm *SessionManager) Close() {
 	})
 }
 
-func (sm *SessionManager) NewSession(sid string, session *yamux.Session, arwstream *transport.ARWStream) {
-	sm.sessions.Store(sid, &UserSession{
-		session:   session,
-		arwstream: arwstream,
-	})
+func (sm *SessionManager) NewSession(sid string, session *yamux.Session, arwstream *transport.ARWStream, forwardTraffic bool) {
+	ns := &UserSession{
+		session:        session,
+		arwstream:      arwstream,
+		forwardTraffic: atomic.Bool{},
+	}
+	ns.forwardTraffic.Store(forwardTraffic)
+	sm.sessions.Store(sid, ns)
 }
 
 func (sm *SessionManager) HasSession(sid string) bool {
@@ -51,11 +56,12 @@ func (sm *SessionManager) HasSession(sid string) bool {
 	return ok
 }
 
-func (sm *SessionManager) UpdateSession(sid string, wsConn *websocket.Conn) {
+func (sm *SessionManager) UpdateSession(sid string, wsConn *websocket.Conn, forwardTraffic bool) {
 	if val, ok := sm.sessions.Load(sid); ok {
 		userSession, ok := val.(*UserSession)
 		if ok {
 			userSession.arwstream.UpdateWsConn(wsConn)
+			userSession.forwardTraffic.Store(forwardTraffic)
 		}
 	}
 }
@@ -82,7 +88,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		sid := key.(string)
 		userSession := val.(*UserSession)
 		session := userSession.session
-		if session == nil || session.IsClosed() {
+		if session == nil || session.IsClosed() || !userSession.forwardTraffic.Load() {
 			return true
 		}
 

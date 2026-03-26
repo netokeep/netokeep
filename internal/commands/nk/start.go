@@ -19,7 +19,7 @@ import (
 func CreateStartCmd() *cobra.Command {
 	var remoteAddr string
 	var sshPort uint16
-
+	var forwardTraffic bool
 	var startCmd = &cobra.Command{
 		Use:   "start",
 		Short: "Start the netokeep client.",
@@ -37,7 +37,7 @@ func CreateStartCmd() *cobra.Command {
 				manager.Traffic2Session(conn, header)
 			})
 
-			traffic.StartClient(ctx, manager, remoteAddr, func(conn net.Conn) {
+			traffic.StartClient(ctx, manager, remoteAddr, forwardTraffic, func(conn net.Conn) {
 				pattern, host, port, err := protocol.ParseSocHeader(conn)
 				if err != nil {
 					log.Printf("Failed to initialize the connection: %v", err)
@@ -61,6 +61,7 @@ func CreateStartCmd() *cobra.Command {
 		},
 	}
 
+	startCmd.Flags().BoolVarP(&forwardTraffic, "forwardTraffic", "f", false, "Forward SSH traffic")
 	startCmd.Flags().StringVarP(&remoteAddr, "remoteAddress", "r", "", "NKS server address")
 	startCmd.Flags().Uint16VarP(&sshPort, "sshPort", "s", 2222, "SSH port")
 	startCmd.MarkFlagRequired("remoteAddress")

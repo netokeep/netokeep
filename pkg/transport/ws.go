@@ -23,7 +23,7 @@ func Upgrade2Ws(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 /*
 IsWsRequest checks whether the request is websocket or just http request.
 */
-func IsWsRequest(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+func IsWsRequest(w http.ResponseWriter, r *http.Request) (string, string, bool, bool) {
 	// Get client ip address
 	client := r.RemoteAddr
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
@@ -33,14 +33,20 @@ func IsWsRequest(w http.ResponseWriter, r *http.Request) (string, string, bool) 
 	// Validate the request
 	if r.Header.Get("Upgrade") != "websocket" {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
-		return "", client, false
+		return "", client, false, false
 	}
 
 	// Find the session ID
 	sid := r.Header.Get("X-Session-ID")
 	if sid == "" {
-		return "", client, false
+		return "", client, false, false
 	}
 
-	return sid, client, true
+	// Check if the traffic forwarding is enabled for this session
+	forwardTraffic := false
+	if r.Header.Get("X-Forward-Traffic") == "true" {
+		forwardTraffic = true
+	}
+
+	return sid, client, forwardTraffic, true
 }

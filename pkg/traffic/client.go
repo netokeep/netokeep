@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"netokeep/pkg/sessions"
 	"netokeep/pkg/transport"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -15,7 +16,13 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
-func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAddr string, handler func(conn net.Conn)) {
+func StartClient(
+	ctx context.Context,
+	manager *sessions.SessionManager,
+	remoteAddr string,
+	forwardTraffic bool,
+	handler func(conn net.Conn),
+) {
 	var wg sync.WaitGroup
 	// Generate a unique session ID for this client instance
 	sid := uuid.New().String()
@@ -34,6 +41,8 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 	dailer := func() (*websocket.Conn, error) {
 		header := http.Header{}
 		header.Add("X-Session-ID", sid)
+		header.Add("X-Forward-Traffic", strconv.FormatBool(forwardTraffic))
+
 		wsConn, _, err := websocket.DefaultDialer.Dial(remoteAddr, header)
 		return wsConn, err
 	}
@@ -49,7 +58,9 @@ func StartClient(ctx context.Context, manager *sessions.SessionManager, remoteAd
 		arwstream.Close()
 		log.Fatalf("Failed to create session: %v", err)
 	}
-	manager.NewSession(sid, session, arwstream)
+	// Send the server to control the traffic forwarding.
+	// For client side, forward ssh traffic by default.
+	manager.NewSession(sid, session, arwstream, true)
 
 	go func() {
 		defer manager.RemoveSession(sid)

@@ -25,7 +25,7 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		sid, ipAddr, ok := transport.IsWsRequest(w, r)
+		sid, ipAddr, forwardTraffic, ok := transport.IsWsRequest(w, r)
 		if !ok {
 			log.Printf("Invalid request from: %s", ipAddr)
 			return
@@ -38,7 +38,7 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 		log.Printf("✨ New connection received from: %s", ipAddr)
 		if ok := manager.HasSession(sid); ok {
 			log.Printf("Session already exists, updating ws connection.")
-			manager.UpdateSession(sid, wsConn)
+			manager.UpdateSession(sid, wsConn, forwardTraffic)
 			return
 		}
 		arwstream := transport.NewARWStream(ctx, wsConn, nil)
@@ -48,7 +48,7 @@ func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort 
 			log.Printf("Failed to create session: %v", err)
 			return
 		}
-		manager.NewSession(sid, session, arwstream)
+		manager.NewSession(sid, session, arwstream, forwardTraffic)
 
 		go func() {
 			defer manager.RemoveSession(sid)
