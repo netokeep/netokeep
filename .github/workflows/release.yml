@@ -33,3 +33,4 @@ jobs:
               uses: softprops/action-gh-release@v2
               with:
                 files: release/*
+                token: ${{ secrets.RELEASE_TOKEN }}
