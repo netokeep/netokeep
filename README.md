@@ -75,7 +75,8 @@ Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 Create the NetoKeep client to connect to your server
 
 ```bash
-nk start -s 2222 -r <HTTP_LINK>
+# f: forward the server traffic (default false)
+nk start -f -s 2222 -r <HTTP_LINK>
 ```
 
 #### 2. Connect to your container using SSH
