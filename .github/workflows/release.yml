@@ -26,9 +26,6 @@ jobs:
             - name: Create release archive
               run: make pack
 
-            - name: Check release files
-              run: ls -l release/
-
             - name: Upload release assets
               uses: softprops/action-gh-release@v2
               with:
