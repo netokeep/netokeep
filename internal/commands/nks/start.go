@@ -1,20 +1,28 @@
 package nks
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"net"
-	"netokeep/pkg/protocol"
-	"netokeep/pkg/sessions"
-	"netokeep/pkg/traffic"
-	"netokeep/pkg/transport"
 	"os"
-	"os/signal"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"syscall"
 
 	"github.com/spf13/cobra"
 )
+
+func getXDGDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(home, ".local", "share", "netokeep")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
 
 func CreateStartCmd() *cobra.Command {
 	var sshPort uint16
@@ -25,40 +33,40 @@ func CreateStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start the netokeep server.",
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-
-			// Create a session manager to handle all user sessions
-			manager := sessions.NewSessionManager()
-
-			// Handle outgoing traffic
-			go protocol.StartProxyListener(ctx, tcpPort, func(conn *protocol.SocConn) {
-				header := conn.CreateSocHeader(protocol.ProPattern)
-				// Select one accessible session to forward outgoing traffic
-				manager.Traffic2Session(conn, header)
-			})
-
-			traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
-				pattern, _, _, err := protocol.ParseSocHeader(conn)
-				if err != nil {
-					log.Printf("Failed to initialize the connection: %v", err)
-					return
-				}
-				switch pattern {
-				// The client will just actively send ssh request using channel
-				case protocol.SshPattern:
-					// For ssh request, the host and port in header are meaningless.
-					remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
-					if err != nil {
-						log.Printf("Failed to connect to local ssh server: %v", err)
+			runDir, err := getXDGDir()
+			if err != nil {
+				log.Fatalf("Failed to get XDG directory: %v", err)
+			}
+			pidPath := filepath.Join(runDir, "netokeep.pid")
+			// Check if the PID file exists
+			if data, err := os.ReadFile(pidPath); err == nil {
+				pid, _ := strconv.Atoi(string(data))
+				if process, err := os.FindProcess(pid); err == nil {
+					if err := process.Signal(syscall.Signal(0)); err == nil {
+						fmt.Printf("Netokeep server is already running (PID: %d)\n", pid)
 						return
 					}
-					transport.Relay(conn, remoteConn)
-				default:
-					log.Printf("Invalid request.")
-					return
 				}
-			})
+			}
+			// Start the server
+			executable, _ := os.Executable()
+			argArr := []string{
+				"run",
+				"-s", fmt.Sprintf("%d", sshPort),
+				"-t", fmt.Sprintf("%d", tcpPort),
+				"-o", fmt.Sprintf("%d", outPort),
+			}
+			newCmd := exec.Command(executable, argArr...)
+			newCmd.Stdout = nil
+			newCmd.Stderr = nil
+			newCmd.Stdin = nil
+
+			if err := newCmd.Start(); err != nil {
+				log.Fatalf("Failed to start background process: %v", err)
+			}
+
+			os.WriteFile(pidPath, []byte(strconv.Itoa(newCmd.Process.Pid)), 0644)
+			fmt.Printf("Netokeep server started in background (PID: %d)\n", newCmd.Process.Pid)
 		},
 	}
 

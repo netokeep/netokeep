@@ -88,6 +88,7 @@ func StartProxyListener(ctx context.Context, listenPort uint16, handler func(*So
 						portStr = "80"
 					}
 				}
+				log.Printf("[LISTENER] Connection request to: %s", host)
 
 				p, _ := strconv.ParseUint(portStr, 10, 16)
 				port := uint16(p)

@@ -62,9 +62,7 @@ Open a new terminal and run:
 # s: The port for your SSH service
 # t: The TCP proxy port (protocol: HTTP)
 # o: The forwarding port for SSH traffc and Proxy traffic
-tmux has-session -t nks 2>/dev/null || \
-tmux new-session -d -s nks \
-  "nks start -s 22 -t 7890 -o 7222"
+nks start -s 22 -t 7890 -o 7222
 ```
 Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
