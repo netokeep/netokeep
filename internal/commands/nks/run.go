@@ -26,6 +26,7 @@ func CreateRunCmd() *cobra.Command {
 
 	var runCmd = &cobra.Command{
 		Use:   "run",
+		Hidden: true,
 		Short: "Run the netokeep server.",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
