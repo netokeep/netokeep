@@ -77,6 +77,14 @@ Create the NetoKeep client to connect to your server
 nk start -f -s 2222 -r <HTTP_LINK>
 ```
 
+If the NetoKeep client should send forwarded outbound traffic through a local SOCKS5 proxy, use `--egress-proxy`:
+
+```bash
+nk start -f -s 2222 -r <HTTP_LINK> --egress-proxy socks5://127.0.0.1:7891
+```
+
+By default, `localhost`, `127.0.0.1`, and `::1` bypass the egress proxy. Override the bypass list with `--egress-no-proxy` if needed.
+
 #### 2. Connect to your container using SSH
 
 ```bash

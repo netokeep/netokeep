@@ -45,7 +45,13 @@ build: format
 # Unified packaging logic
 pack:
 	@mkdir -p $(RELEASE_ROOT)
-	@for platform in $(PLATFORMS); do \
+	@set -e; \
+	if [ -n "$(filter-out windows/%,$(PLATFORMS))" ] && ! command -v makeself >/dev/null 2>&1; then \
+		echo "❌ makeself is required to package non-Windows installers."; \
+		echo "   Install it with your package manager, e.g. 'brew install makeself' or 'apt-get install makeself'."; \
+		exit 1; \
+	fi; \
+	for platform in $(PLATFORMS); do \
 		os=$${platform%/*}; \
 		arch=$${platform#*/}; \
 		build_dir=$(BUILD_ROOT)/$$os-$$arch; \
