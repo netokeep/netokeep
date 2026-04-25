@@ -9,7 +9,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
