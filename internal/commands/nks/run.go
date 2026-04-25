@@ -25,9 +25,9 @@ func CreateRunCmd() *cobra.Command {
 	var outPort uint16
 
 	var runCmd = &cobra.Command{
-		Use:   "run",
+		Use:    "run",
 		Hidden: true,
-		Short: "Run the netokeep server.",
+		Short:  "Run the netokeep server.",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
@@ -40,10 +40,10 @@ func CreateRunCmd() *cobra.Command {
 			logPath := filepath.Join(runDir, "netokeep.log")
 			lumberjackLogger := &lumberjack.Logger{
 				Filename:   logPath,
-				MaxSize:    1,      // Size of one log file (MB)
-				MaxBackups: 1,       // Max number of old log files to keep
-				MaxAge:     28,      // Max age of old log files (days)
-				Compress:   true,    // Compress old log files
+				MaxSize:    1,    // Size of one log file (MB)
+				MaxBackups: 1,    // Max number of old log files to keep
+				MaxAge:     28,   // Max age of old log files (days)
+				Compress:   true, // Compress old log files
 			}
 			multiWriter := io.MultiWriter(os.Stdout, lumberjackLogger)
 			log.SetOutput(multiWriter)
