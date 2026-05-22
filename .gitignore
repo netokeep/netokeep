@@ -6,10 +6,7 @@
 .idea/
 
 # Cache files
-.gocache/
+.DS_Store
 
 # Build files
 release/
-
-# Validation files
-validation/
