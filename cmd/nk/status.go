@@ -12,19 +12,21 @@ import (
 )
 
 func createStatusCmd() *cobra.Command {
+	var name string
+
 	var statusCmd = &cobra.Command{
 		Use:   "status",
-		Short: "Check the status of the netokeep server.",
+		Short: "Check the status of the netokeep client.",
 		Run: func(cmd *cobra.Command, args []string) {
-			pid, err := local.ReadPID("nks")
+			pid, err := local.ReadPID(name)
 			if err != nil {
-				fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
+				fmt.Printf("● netokeep.service - Netokeep Proxy Client\n")
 				fmt.Printf("   Status: Error (Could not locate PID file: %v)\n", err)
 				return
 			}
-			logPath := logging.LogPath("nks")
+			logPath := logging.LogPath(name)
 
-			fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
+			fmt.Printf("● netokeep.service - Netokeep Proxy Client\n")
 
 			// 1. Check the PID and process
 			isRunning := false
@@ -47,6 +49,8 @@ func createStatusCmd() *cobra.Command {
 			printLastLogs(logPath, 10)
 		},
 	}
+
+	statusCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
 
 	return statusCmd
 }

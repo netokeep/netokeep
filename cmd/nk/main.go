@@ -19,7 +19,7 @@ func main() {
 	rootCmd.AddCommand(createUninstallCmd())
 	rootCmd.AddCommand(createStartCmd())
 	rootCmd.AddCommand(createCoreCmd())
-	// rootCmd.AddCommand(createStopCmd())
-	// rootCmd.AddCommand(createStatusCmd())
+	rootCmd.AddCommand(createStopCmd())
+	rootCmd.AddCommand(createStatusCmd())
 	rootCmd.Execute()
 }

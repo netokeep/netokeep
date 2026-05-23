@@ -27,6 +27,7 @@ func createStartCmd() *cobra.Command {
 				if process, err := os.FindProcess(pid); err == nil {
 					if err := process.Signal(syscall.Signal(0)); err == nil {
 						fmt.Printf("Netokeep server is already running (PID: %d)\n", pid)
+						fmt.Printf("If you want to start one new instance, \n\tplease run the command with '--name' flag and specify a different name.\n")
 						return
 					}
 				}

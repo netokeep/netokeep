@@ -10,15 +10,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// CreateStopCmd creates the cobra command to stop the background server
+// CreateStopCmd creates the cobra command to stop the background client
 func createStopCmd() *cobra.Command {
+	var name string
+
 	var stopCmd = &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the netokeep server.",
+		Short: "Stop the netokeep client.",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			// 1. Read the PID from the file
-			pid, err := local.ReadPID("nks")
+			pid, err := local.ReadPID(name)
 			if err != nil {
 				fmt.Printf("Error: Could not read PID file: %v\n", err)
 				return
@@ -53,13 +55,15 @@ func createStopCmd() *cobra.Command {
 
 			if success {
 				// Cleanup the PID file after successful stop
-				// local.RemovePID("nks")
+				// local.RemovePID(name)
 				fmt.Println("\033[32mstopped\033[0m")
 			} else {
 				fmt.Println("\nWarning: Process is taking too long to stop. You might need to kill it manually.")
 			}
 		},
 	}
+
+	stopCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
 
 	return stopCmd
 }

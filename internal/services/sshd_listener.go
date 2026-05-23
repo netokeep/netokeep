@@ -19,7 +19,7 @@ func StartSshdListener(ctx context.Context, manager *sessions.SessionManager, po
 	if err != nil {
 		return fmt.Errorf("error in listening port %d: %v", portSsh, err)
 	}
-	log.Printf("[listener] SSH listener started at port %d", portSsh)
+	log.Printf("🌐 SSH listener started at port %d", portSsh)
 
 	go func() {
 		for {
