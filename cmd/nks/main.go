@@ -1,10 +1,6 @@
 package main
 
-import (
-	"netokeep/internal/commands/nks"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var version = "dev"
 
@@ -19,9 +15,10 @@ func main() {
 		},
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(nks.CreateStartCmd())
-	rootCmd.AddCommand(nks.CreateRunCmd())
-	rootCmd.AddCommand(nks.CreateStatusCmd())
-	rootCmd.AddCommand(nks.CreateStopCmd())
+	rootCmd.AddCommand(createInstallCmd())
+	rootCmd.AddCommand(createUninstallCmd())
+	rootCmd.AddCommand(createStartCmd())
+	// rootCmd.AddCommand(createStopCommand())
+	// rootCmd.AddCommand(createStatusCommand())
 	rootCmd.Execute()
 }

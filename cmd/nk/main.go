@@ -1,10 +1,6 @@
 package main
 
-import (
-	"netokeep/internal/commands/nk"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var version = "dev"
 
@@ -19,6 +15,7 @@ func main() {
 		},
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(nk.CreateStartCmd())
+	rootCmd.AddCommand(createInstallCmd())
+	rootCmd.AddCommand(createUninstallCmd())
 	rootCmd.Execute()
 }
