@@ -33,9 +33,9 @@ type ProxyConfig struct {
 }
 
 type NkConfig struct {
-	Version     string        `json:"version"`
-	Description string        `json:"description"`
-	Proxy       []ProxyConfig `json:"proxy"`
+	Version     string      `json:"version"`
+	Description string      `json:"description"`
+	Proxy       ProxyConfig `json:"proxy"`
 }
 
 func nksConfigPath() string { return filepath.Join(configDir(), "nks_settings.json") }

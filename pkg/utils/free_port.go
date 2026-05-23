@@ -4,7 +4,6 @@ import (
 	"net"
 )
 
-
 func FindFreePort() (uint16, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {

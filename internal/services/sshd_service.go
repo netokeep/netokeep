@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -46,8 +47,8 @@ func StartSshdService() (uint16, func(), error) {
 
 	// Start the sshd process
 	cmd := exec.Command("/usr/sbin/sshd", "-D", "-e", "-p", strconv.Itoa(int(port)))
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
+	cmd.Stdout = logWriter{prefix: "sshd"}
+	cmd.Stderr = logWriter{prefix: "sshd"}
 
 	// Start the process in the background
 	if err := cmd.Start(); err != nil {
@@ -88,4 +89,13 @@ func cleanupFunc(sshPid int) func() {
 			log.Printf("[sshd] Failed to remove sshd port: %v", err)
 		}
 	}
+}
+
+type logWriter struct {
+	prefix string
+}
+
+func (w logWriter) Write(p []byte) (int, error) {
+	log.Printf("[%s] %s", w.prefix, strings.TrimSpace(string(p)))
+	return len(p), nil
 }
