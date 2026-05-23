@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -25,7 +26,6 @@ func InitLogging(name string) {
 		MaxAge:     28,   // Max age of old log files (days)
 		Compress:   true, // Compress old log files
 	}
-
-	// Only write to the log file, avoiding output to standard output
-	log.SetOutput(lumberjackLogger)
+	multiWriter := io.MultiWriter(os.Stdout, lumberjackLogger)
+	log.SetOutput(multiWriter)
 }

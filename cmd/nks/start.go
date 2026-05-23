@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CreateStartCmd() *cobra.Command {
+func createStartCmd() *cobra.Command {
 	var portIn uint16
 	var portOut uint16
 

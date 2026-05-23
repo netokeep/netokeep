@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
-func StartServer(ctx context.Context, manager *sessions.SessionManager, sshPort uint16, outPort uint16, handler func(conn net.Conn)) {
+func StartServer(ctx context.Context, manager *sessions.SessionManager, outPort uint16, handler func(conn net.Conn)) {
 	var wg sync.WaitGroup
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()

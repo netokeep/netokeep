@@ -58,7 +58,7 @@ func CreateRunCmd() *cobra.Command {
 				manager.Traffic2Session(conn, header)
 			})
 
-			traffic.StartServer(ctx, manager, sshPort, outPort, func(conn net.Conn) {
+			traffic.StartServer(ctx, manager, outPort, func(conn net.Conn) {
 				pattern, _, _, err := protocol.ParseSocHeader(conn)
 				if err != nil {
 					log.Printf("Failed to initialize the connection: %v", err)
