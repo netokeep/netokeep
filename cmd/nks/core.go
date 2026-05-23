@@ -30,7 +30,7 @@ func createCoreCmd() *cobra.Command {
 			logging.InitLogging("nks")
 
 			// Start sshd service
-			_, stopSshd, err := services.StartSshdService()
+			portSsh, stopSshd, err := services.StartSshdService()
 			if err != nil {
 				log.Fatalf("[nks] Failed to start sshd service: %v", err)
 			}
@@ -45,7 +45,7 @@ func createCoreCmd() *cobra.Command {
 
 			// Handle incoming traffic
 			eg.Go(func() error {
-				return services.StartTrafficServer(egCtx, manager, portOut)
+				return services.StartTrafficServer(egCtx, manager, portOut, portSsh)
 			})
 
 			// traffic.StartServer(ctx, manager, outPort, func(conn net.Conn) {
