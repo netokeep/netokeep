@@ -19,20 +19,17 @@ func StartSshdService() (uint16, func(), error) {
 				// If service is already running, return the existing port
 				port, err := local.ReadPort("sshd")
 				if err != nil {
-					log.Printf("Error in reading SSH port: %v\n", err)
+					log.Printf("[sshd] Error in reading SSH port: %v\n", err)
 				}
 				portStr := "unknown"
 				if err == nil && port != 0 {
 					portStr = strconv.FormatUint(uint64(port), 10)
 				}
-				log.Printf("sshd service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
+				log.Printf("[sshd] Sshd service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
 				return port, cleanupFunc(sshPid), nil
 			}
 		}
 	}
-
-	// Start the sshd service
-	log.Printf("[sshd] Starting sshd service...")
 
 	// Find an available free port from a high range
 	port, err := utils.FindFreePort()
@@ -65,7 +62,7 @@ func StartSshdService() (uint16, func(), error) {
 		return 0, nil, fmt.Errorf("failed to write sshd port: %w", err)
 	}
 
-	log.Printf("[sshd] sshd service started (PID: %d, Port: %d)\n", cmd.Process.Pid, port)
+	log.Printf("[sshd] Sshd service started (PID: %d, Port: %d)\n", cmd.Process.Pid, port)
 
 	return uint16(port), cleanupFunc(cmd.Process.Pid), nil
 }

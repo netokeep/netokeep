@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"netokeep/pkg/transport"
@@ -82,7 +83,7 @@ Traffic2Session allows you to push the `clientConn` into one available session.
 
 It closes the passed connection if no connection is available.
 */
-func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
+func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) error {
 	var success bool
 	sm.sessions.Range(func(key, val any) bool {
 		sid := key.(string)
@@ -94,13 +95,13 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 
 		stream, err := session.Open()
 		if err != nil {
-			log.Printf("[SESSION] Session [%s] failed to open stream, falling back to another session...", sid)
+			log.Printf("[session] Session [%s] failed to open stream, falling back to another session...", sid)
 			return true
 		}
 
 		_, err = stream.Write(header)
 		if err != nil {
-			log.Printf("[SESSION] Session [%s] failed to write header, falling back to another session...", sid)
+			log.Printf("[session] Session [%s] failed to write header, falling back to another session...", sid)
 			stream.Close()
 			return true
 		}
@@ -108,14 +109,12 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) {
 		// Entering Relay, exit after completion
 		go func() {
 			transport.Relay(clientConn, stream)
-			clientConn.Close()
-			stream.Close()
 		}()
 		success = true
 		return false // stop ranging after successfully forwarding the traffic
 	})
 	if !success {
-		log.Printf("[SESSION] No available session, waiting for new connections...")
-		clientConn.Close()
+		return fmt.Errorf("no available session")
 	}
+	return nil
 }
