@@ -26,10 +26,10 @@ You can download the latest release of NetoKeep and install it. It contains both
 ```bash
 # This command is for Linux AMD64.
 # Download the latest release for based on your system
-wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64.sh
-chmod +x netokeep-linux-amd64.sh
-./netokeep-linux-amd64.sh
-rm -f netokeep-linux-amd64.sh
+wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64-installer
+chmod +x netokeep-linux-amd64-installer
+./netokeep-linux-amd64-installer
+rm -f netokeep-linux-amd64-installer
 ```
 
 Install dependencies.
