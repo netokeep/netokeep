@@ -97,10 +97,9 @@ And enjoy!
 The previous programs are stored in differnt locations. You could run the following commands to remove them.
 
 ```bash
-rm -rf /usr/local/bin/nk
-rm -rf /usr/local/bin/nks
-rm -rf ~/.local/share/netokeep/netokeep.pid
-rm -rf ~/.local/share/netokeep/netokeep.log
+sudo rm -rf /usr/local/bin/nk
+sudo rm -rf /usr/local/bin/nks
+sudo rm -rf ~/.local/share/netokeep/netokeep.pid
 ```
 
 ## Acknowledgement

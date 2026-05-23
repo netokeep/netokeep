@@ -106,7 +106,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) er
 			return true
 		}
 
-		// Entering Relay, exit after completion
+		// Entering Relay, exit immediately after starting relay
 		go func() {
 			transport.Relay(clientConn, stream)
 		}()

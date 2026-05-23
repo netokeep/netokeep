@@ -62,8 +62,8 @@ func createStartCmd() *cobra.Command {
 	startCmd.Flags().StringVarP(&remoteAddr, "remote-address", "r", "", "NKS server address")
 	startCmd.Flags().Uint16VarP(&portSsh, "ssh-port", "s", 2222, "SSH port")
 	startCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
-	startCmd.Flags().BoolVarP(&forwardTraffic, "forward-traffic", "f", false, "Forward SSH traffic")
-	startCmd.Flags().BoolVarP(&useProxy, "use-proxy", "p", false, "Use proxy for outgoing traffic")
+	startCmd.Flags().BoolVarP(&forwardTraffic, "forward-traffic", "f", false, "forward SSH traffic")
+	startCmd.Flags().BoolVarP(&useProxy, "use-proxy", "p", false, "use proxy for outgoing traffic")
 	startCmd.MarkFlagRequired("remote-address")
 
 	return startCmd

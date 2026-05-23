@@ -29,7 +29,6 @@ func StartSshdListener(ctx context.Context, manager *sessions.SessionManager, po
 				return
 			}
 			wg.Go(func() {
-				defer conn.Close()
 				socConn := &protocol.SocConn{
 					Conn: conn,
 					Host: "placeholder",
@@ -41,6 +40,7 @@ func StartSshdListener(ctx context.Context, manager *sessions.SessionManager, po
 				// Select one accessible session to forward outgoing traffic
 				if err := manager.Traffic2Session(socConn, header); err != nil {
 					log.Printf("[listener] Failed to forward traffic to session: %v", err)
+					conn.Close()
 					return
 				}
 			})

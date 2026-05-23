@@ -63,8 +63,9 @@ func StartTrafficClient(ctx context.Context, manager *sessions.SessionManager, r
 		arwstream.Close()
 		return fmt.Errorf("failed to create session: %v", err)
 	}
-
-	manager.NewSession(sid, session, arwstream, forwardTraffic)
+	// Send the server to control the traffic forwarding.
+	// For client side, forward ssh traffic by default.
+	manager.NewSession(sid, session, arwstream, true)
 
 	go func() {
 		defer manager.RemoveSession(sid)

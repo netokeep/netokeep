@@ -46,11 +46,11 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 				return
 			}
 			wg.Go(func() {
-				defer conn.Close()
 				// Handle the handshake of HTTP and return the conn with host and port
 				request, err := http.ReadRequest(bufio.NewReader(conn))
 				if err != nil {
 					log.Printf("[listener] Error in reading the request header: %v", err)
+					conn.Close()
 					return
 				}
 				host, portStr, err := net.SplitHostPort(request.Host)
@@ -66,6 +66,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 				// match the request host with server rules. If not matched, close the connection directly.
 				if !matcher.Match(host) {
 					log.Printf("[listener] Connection request to unmatched host: %s, closing connection.", host)
+					conn.Close()
 					return
 				}
 				log.Printf("[listener] Connection request to: %s", host)
@@ -84,6 +85,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 					_, err = conn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
 					if err != nil {
 						log.Printf("[listener] Error in CONNECT request handshake: %v", err)
+						conn.Close()
 						return
 					}
 				} else {
@@ -103,6 +105,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 				// The control of conn is handed to Traffic2Session if no error is returned.
 				if err := manager.Traffic2Session(socConn, header); err != nil {
 					log.Printf("[listener] Failed to forward traffic to session: %v", err)
+					conn.Close()
 					return
 				}
 			})
