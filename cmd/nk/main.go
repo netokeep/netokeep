@@ -17,5 +17,9 @@ func main() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(createInstallCmd())
 	rootCmd.AddCommand(createUninstallCmd())
+	rootCmd.AddCommand(createStartCmd())
+	rootCmd.AddCommand(createCoreCmd())
+	// rootCmd.AddCommand(createStopCmd())
+	// rootCmd.AddCommand(createStatusCmd())
 	rootCmd.Execute()
 }

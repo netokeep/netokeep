@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
-
 func StartTrafficServer(ctx context.Context, manager *sessions.SessionManager, portOut uint16, portSsh uint16) error {
 	var wg sync.WaitGroup
 	// Setup yamux config

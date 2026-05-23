@@ -71,7 +71,7 @@ func printLastLogs(path string, lines int) {
 	content := strings.TrimSpace(string(data))
 	allLines := strings.Split(content, "\n")
 
-	start := max(len(allLines) - lines, 0)
+	start := max(len(allLines)-lines, 0)
 
 	for _, line := range allLines[start:] {
 		if line != "" {

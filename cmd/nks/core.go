@@ -48,7 +48,7 @@ func createCoreCmd() *cobra.Command {
 				return services.StartTrafficServer(egCtx, manager, portOut, portSsh)
 			})
 
-			<- egCtx.Done()
+			<-egCtx.Done()
 			stopSshd()
 			manager.Close()
 

@@ -21,7 +21,6 @@ func LogPath(name string) string {
 	return filepath.Join(logDir(), name+".log")
 }
 
-
 func InitLogging(name string) {
 	if err := os.MkdirAll(logDir(), 0755); err != nil {
 		panic("Failed to create log directory: " + err.Error())

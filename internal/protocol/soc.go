@@ -7,7 +7,6 @@ import (
 	"net"
 )
 
-
 type SocPattern uint8
 
 const (
@@ -17,7 +16,6 @@ const (
 	// SSH request pattern
 	SshPattern SocPattern = 0x02
 )
-
 
 type SocConn struct {
 	net.Conn

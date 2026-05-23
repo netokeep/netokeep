@@ -2,8 +2,6 @@ package rules
 
 import "netokeep/internal/local"
 
-
-
 func LoadServerMatcher() (*RuleMatcher, error) {
 	nksConfig, err := local.LoadNksConfig()
 	if err != nil {
