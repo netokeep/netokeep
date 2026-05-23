@@ -3,6 +3,7 @@
     "description": "This file determines the proxy rules used for the nk service.",
     "proxy": {
         "type": "socks5",
+        "address": "localhost",
         "port": 1080,
         "allow": [
             "*.openai.com",

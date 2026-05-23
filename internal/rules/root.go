@@ -14,3 +14,16 @@ func LoadServerMatcher() (*RuleMatcher, error) {
 
 	return NewRuleMatcher(defaultAllow, allowList, denyList), nil
 }
+
+func LoadClientRules() ([]string, string, string, uint16, error) {
+	nkConfig, err := local.LoadNkConfig()
+	if err != nil {
+		return nil, "", "", 0, err
+	}
+	proxyType := nkConfig.Proxy.Type
+	proxyAddr := nkConfig.Proxy.Addr
+	proxyPort := nkConfig.Proxy.Port
+	allowList := nkConfig.Proxy.AllowList
+
+	return allowList, proxyType, proxyAddr, uint16(proxyPort), nil
+}

@@ -25,7 +25,7 @@ func StartSshdService() (uint16, func(), error) {
 				if err == nil && port != 0 {
 					portStr = strconv.FormatUint(uint64(port), 10)
 				}
-				log.Printf("[sshd] Sshd service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
+				log.Printf("[sshd] SSHD service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
 				return port, cleanupFunc(sshPid), nil
 			}
 		}
@@ -62,7 +62,7 @@ func StartSshdService() (uint16, func(), error) {
 		return 0, nil, fmt.Errorf("failed to write sshd port: %w", err)
 	}
 
-	log.Printf("[sshd] Sshd service started (PID: %d, Port: %d)\n", cmd.Process.Pid, port)
+	log.Printf("🌐 SSHD service started (PID: %d, Port: %d)\n", cmd.Process.Pid, port)
 
 	return uint16(port), cleanupFunc(cmd.Process.Pid), nil
 }

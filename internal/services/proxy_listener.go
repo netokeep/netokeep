@@ -36,7 +36,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 	if err != nil {
 		return fmt.Errorf("error in listening %d: %v", listenPort, err)
 	}
-	log.Printf("[listener] HTTP proxy listener started at port %d", listenPort)
+	log.Printf("🌐 HTTP proxy listener started at port %d", listenPort)
 
 	go func() {
 		for {

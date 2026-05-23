@@ -28,6 +28,7 @@ type NksConfig struct {
 
 type ProxyConfig struct {
 	Type      string   `json:"type"`
+	Addr      string   `json:"address"`
 	Port      int      `json:"port"`
 	AllowList []string `json:"allow"`
 }
