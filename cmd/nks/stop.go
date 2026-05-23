@@ -1,11 +1,9 @@
-package nks
+package main
 
 import (
 	"fmt"
+	"netokeep/internal/local"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -13,29 +11,16 @@ import (
 )
 
 // CreateStopCmd creates the cobra command to stop the background server
-func CreateStopCmd() *cobra.Command {
+func createStopCmd() *cobra.Command {
 	var stopCmd = &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the netokeep server.",
 		Run: func(cmd *cobra.Command, args []string) {
-			runDir, err := getXDGDir()
-			if err != nil {
-				fmt.Printf("Error: Failed to get data directory: %v\n", err)
-				return
-			}
-
-			pidPath := filepath.Join(runDir, "netokeep.pid")
 
 			// 1. Read the PID from the file
-			data, err := os.ReadFile(pidPath)
+			pid, err := local.ReadPID("nks")
 			if err != nil {
-				fmt.Println("Error: Netokeep is not running (PID file not found).")
-				return
-			}
-
-			pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-			if err != nil {
-				fmt.Printf("Error: Invalid PID found in %s\n", pidPath)
+				fmt.Printf("Error: Could not read PID file: %v\n", err)
 				return
 			}
 
@@ -68,7 +53,7 @@ func CreateStopCmd() *cobra.Command {
 
 			if success {
 				// Cleanup the PID file after successful stop
-				os.Remove(pidPath)
+				local.RemovePID("nks")
 				fmt.Println("\033[32mstopped\033[0m")
 			} else {
 				fmt.Println("\nWarning: Process is taking too long to stop. You might need to kill it manually.")

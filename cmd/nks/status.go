@@ -1,56 +1,45 @@
-package nks
+package main
 
 import (
 	"fmt"
+	"netokeep/internal/local"
+	"netokeep/internal/logging"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
 )
 
-func CreateStatusCmd() *cobra.Command {
+func createStatusCmd() *cobra.Command {
 	var statusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "Check the status of the netokeep server.",
 		Run: func(cmd *cobra.Command, args []string) {
-			runDir, err := getXDGDir()
+			pid, err := local.ReadPID("nks")
 			if err != nil {
 				fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
-				fmt.Printf("   Status: Error (Could not locate data directory: %v)\n", err)
+				fmt.Printf("   Status: Error (Could not locate PID file: %v)\n", err)
 				return
 			}
-
-			pidPath := filepath.Join(runDir, "netokeep.pid")
-			logPath := filepath.Join(runDir, "netokeep.log")
+			logPath := logging.LogPath("nks")
 
 			fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
 
 			// 1. Check the PID and process
-			data, err := os.ReadFile(pidPath)
 			isRunning := false
-			var pid int
-
-			if err == nil {
-				pid, _ = strconv.Atoi(strings.TrimSpace(string(data)))
-				if process, err := os.FindProcess(pid); err == nil {
-					if err := process.Signal(syscall.Signal(0)); err == nil {
-						isRunning = true
-					}
+			if process, err := os.FindProcess(pid); err == nil {
+				if err := process.Signal(syscall.Signal(0)); err == nil {
+					isRunning = true
 				}
 			}
 
 			// 2. Pring the systemctl like status information
 			if isRunning {
-				fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(pidPath))
+				fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
 				fmt.Printf("     Main PID: %d (netokeep)\n", pid)
 			} else {
 				fmt.Printf("   Active: \033[31minactive (dead)\033[0m\n")
-				if err == nil {
-					fmt.Printf("   Notice: Found stale PID file (PID: %d), but process is gone.\n", pid)
-				}
 			}
 
 			// 3. Log the recent logs (simulating Journal tail output)
@@ -82,10 +71,7 @@ func printLastLogs(path string, lines int) {
 	content := strings.TrimSpace(string(data))
 	allLines := strings.Split(content, "\n")
 
-	start := len(allLines) - lines
-	if start < 0 {
-		start = 0
-	}
+	start := max(len(allLines) - lines, 0)
 
 	for _, line := range allLines[start:] {
 		if line != "" {

@@ -48,28 +48,6 @@ func createCoreCmd() *cobra.Command {
 				return services.StartTrafficServer(egCtx, manager, portOut, portSsh)
 			})
 
-			// traffic.StartServer(ctx, manager, outPort, func(conn net.Conn) {
-			// 	pattern, _, _, err := protocol.ParseSocHeader(conn)
-			// 	if err != nil {
-			// 		log.Printf("Failed to initialize the connection: %v", err)
-			// 		return
-			// 	}
-			// 	switch pattern {
-			// 	// The client will just actively send ssh request using channel
-			// 	case protocol.SshPattern:
-			// 		// For ssh request, the host and port in header are meaningless.
-			// 		remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
-			// 		if err != nil {
-			// 			log.Printf("Failed to connect to local ssh server: %v", err)
-			// 			return
-			// 		}
-			// 		transport.Relay(conn, remoteConn)
-			// 	default:
-			// 		log.Printf("Invalid request.")
-			// 		return
-			// 	}
-			// })
-
 			<- egCtx.Done()
 			stopSshd()
 			manager.Close()
