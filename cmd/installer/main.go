@@ -6,6 +6,8 @@ import (
 	"netokeep/internal/local"
 	"os"
 	"path/filepath"
+
+	"github.com/fatih/color"
 )
 
 //go:embed nk
@@ -14,8 +16,14 @@ var nkBin []byte
 //go:embed nks
 var nksBin []byte
 
+var version = "dev"
+
 func main() {
-	fmt.Println("🚀 Starting installation of NetoKeep...")
+	gray := color.RGB(142, 142, 142).SprintFunc()
+	greenBold := color.RGB(69, 177, 90).Add(color.Bold).SprintFunc()
+	orange := color.RGB(209, 108, 77).SprintFunc()
+
+	fmt.Printf("%s\n\n", gray("Setting up NetoKeep..."))
 
 	// Fetch the bin directory
 	home, err := os.UserHomeDir()
@@ -45,6 +53,11 @@ func main() {
 	// Initialize the config and state directories
 	local.InitialAll()
 
-	fmt.Println("✅ Installation completed successfully!")
-	fmt.Println("👉 Now use 'nk' and 'nks' anywhere in your shell.")
+	fmt.Printf("\n%s\n\n", greenBold("✔ NetoKeep successfully installed!"))
+	fmt.Printf("%s %s\n\n", gray(" Version: "), orange(version))
+	fmt.Printf("%s %s\n\n", gray(" Location:"), orange("~/.local/bin"))
+	fmt.Printf("%s %s %s %s %s\n\n",
+		gray(" Next: Run"), orange("nk --help"),
+		gray("or"), orange("nks --help"),
+		gray("to get started."))
 }

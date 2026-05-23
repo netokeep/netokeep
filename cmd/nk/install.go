@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func createInstallCommand() *cobra.Command {
+func createInstallCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "install",
 		Short: "Reset up necessary configurations for 'nk'.",

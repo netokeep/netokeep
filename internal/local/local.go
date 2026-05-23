@@ -20,6 +20,26 @@ func binDir() string {
 	return filepath.Join(home, ".local", "bin")
 }
 
+func RemoveStateDir() error {
+	return os.RemoveAll(stateDir())
+}
+
+func RemoveConfigDir() error {
+	return os.RemoveAll(configDir())
+}
+
+func RemovePrograms() error {
+	nkBin := filepath.Join(binDir(), "nk")
+	nksBin := filepath.Join(binDir(), "nks")
+	if err := os.Remove(nkBin); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.Remove(nksBin); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 func InitializeDirs() error {
 	for _, d := range []string{configDir(), stateDir(), binDir()} {
 		if err := os.MkdirAll(d, 0755); err != nil {
