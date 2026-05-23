@@ -32,10 +32,9 @@ chmod +x netokeep-linux-amd64.sh
 rm -f netokeep-linux-amd64.sh
 ```
 
-## Quick start
+Install dependencies.
 
-### Server Part
-#### 1. Install dependencies
+安装依赖。
 
 ```bash
 # Add your pubKey into ssh config 添加你的客户端公钥到ssh配置文件中
@@ -44,46 +43,37 @@ read -r -p "Input SSH public key (Enter to skip): " K
 [ -n "$K" ] && (grep -qxF "$K" ~/.ssh/authorized_keys 2>/dev/null || echo "$K" >> ~/.ssh/authorized_keys)
 # Install tools 安装工具
 apt update -y
-apt install -y sudo openssh-server tmux
+apt install -y sudo openssh-server
 ssh-keygen -A
 ```
 
-#### 2. Start SSH service
+
+## Quick start
+
+### Server Part
+
+Open a new terminal and run:
+
 ```bash
-sudo -v && \
-tmux has-session -t sshd 2>/dev/null || \
-tmux new-session -d -s sshd \
-  "sudo mkdir -p /run/sshd && sudo /usr/sbin/sshd -D -e"
+# i: The TCP proxy port (protocol: HTTP)
+# o: The forwarding port for SSH traffc and Proxy traffic
+# You are allowed to control the traffic to proxy in `~/.config/netokeep/nks_settings.json`
+nks start -i 7890 -o 7222
 ```
 
-#### 3. Setup the NetoKeep server
-Open a new terminal and run:
-```bash
-# s: The port for your SSH service
-# t: The TCP proxy port (protocol: HTTP)
-# o: The forwarding port for SSH traffc and Proxy traffic
-nks start -s 22 -t 7890 -o 7222
-```
 Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
 ### Client Part
 
 #### 1. Setup the NetoKeep client
 
-Create the NetoKeep client to connect to your server
+Create the NetoKeep client to connect to your server:
 
 ```bash
 # f: forward the server traffic (default false)
-nk start -f -s 2222 -r <HTTP_LINK>
+# p: use proxy rules in config file `~/.config/netokeep/nk_settings.json`
+nk start -s 2222 -r <HTTP_LINK>
 ```
-
-If the NetoKeep client should send forwarded outbound traffic through a local SOCKS5 proxy, use `--egress-proxy`:
-
-```bash
-nk start -f -s 2222 -r <HTTP_LINK> --egress-proxy socks5://127.0.0.1:7891
-```
-
-By default, `localhost`, `127.0.0.1`, and `::1` bypass the egress proxy. Override the bypass list with `--egress-no-proxy` if needed.
 
 #### 2. Connect to your container using SSH
 
@@ -102,13 +92,16 @@ ssh -p 2222 root@localhost
 
 And enjoy!
 
-> [!TIP]
-> If your container cannot download the VS Code Server, you can add the following to your VS Code settings to use the local proxy for downloading:
-> ```json
-> {
->	"remote.SSH.localServerDownload": "always",
-> }
-> ```
+## Notes
+
+The previous programs are stored in differnt locations. You could run the following commands to remove them.
+
+```bash
+rm -rf /usr/local/bin/nk
+rm -rf /usr/local/bin/nks
+rm -rf ~/.local/share/netokeep/netokeep.pid
+rm -rf ~/.local/share/netokeep/netokeep.log
+```
 
 ## Acknowledgement
 
