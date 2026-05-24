@@ -9,6 +9,7 @@ import (
 	"netokeep/internal/protocol"
 	"netokeep/internal/sessions"
 	"netokeep/pkg/transport"
+	"netokeep/pkg/utils"
 	"sync"
 	"time"
 
@@ -20,7 +21,7 @@ func StartTrafficServer(ctx context.Context, manager *sessions.SessionManager, p
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
-	cfg.EnableKeepAlive = false
+	// cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
 
 	mux := http.NewServeMux()
@@ -75,7 +76,7 @@ func StartTrafficServer(ctx context.Context, manager *sessions.SessionManager, p
 							log.Printf("[traffic] Failed to connect to local ssh server: %v", err)
 							return
 						}
-						transport.Relay(conn, remoteConn)
+						utils.Relay(conn, remoteConn)
 					default:
 						log.Printf("[traffic] Invalid request from %s.", host)
 						return

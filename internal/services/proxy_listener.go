@@ -69,7 +69,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 					conn.Close()
 					return
 				}
-				log.Printf("[listener] Connection request to: %s", host)
+				log.Printf("[listener] Connection request to: %s:%s", host, portStr)
 				p, _ := strconv.ParseUint(portStr, 10, 16)
 				port := uint16(p)
 

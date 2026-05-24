@@ -11,6 +11,7 @@ import (
 	"netokeep/internal/rules"
 	"netokeep/internal/sessions"
 	"netokeep/pkg/transport"
+	"netokeep/pkg/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,7 +29,7 @@ func StartTrafficClient(ctx context.Context, manager *sessions.SessionManager, r
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
-	cfg.EnableKeepAlive = false
+	// cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
 
 	// Load client matcher for selecting the traffic to be proxied
@@ -93,7 +94,7 @@ func StartTrafficClient(ctx context.Context, manager *sessions.SessionManager, r
 						log.Printf("[traffic] Failed to connect to target %s: %v", target, err)
 						return
 					}
-					transport.Relay(conn, remoteConn)
+					utils.Relay(conn, remoteConn)
 				default:
 					log.Printf("[traffic] Invalid request.")
 					return

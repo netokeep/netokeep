@@ -125,24 +125,24 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 
 	if dialer == nil {
 		// For server side, if dialer is nil, it means we rely on external UpdateWsConn to trigger reconnection
-		log.Printf("Session closed, waiting for reconnection...")
+		log.Printf("[arws] Session closed, waiting for reconnection...")
 		return
 	}
 	for range 5 {
-		log.Printf("[ARWS] Attempting to reconnect...")
+		log.Printf("[arws] Attempting to reconnect...")
 		newConn, err = dialer()
 		if err != nil {
-			log.Printf("Failed to reconnect to server: %v", err)
+			log.Printf("[arws] Failed to reconnect to server: %v", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 		success = true
 		as.UpdateWsConn(newConn)
-		log.Printf("[ARWS] Reconnected successfully!")
+		log.Printf("[arws] Reconnected successfully!")
 		break
 	}
 	if !success {
-		log.Fatalf("[ARWS] Reconnection attempts failed 5 times, closing session.")
+		log.Fatalf("[arws] Reconnection attempts failed 5 times, closing session.")
 		as.Close()
 	}
 }
@@ -184,7 +184,7 @@ func (as *ARWStream) wsReadLoop() {
 		}
 		// Validate frame
 		if len(message) < FrameHeaderSize {
-			log.Printf("[ARWS] Received invalid frame (too short), ignoring.")
+			log.Printf("[arws] Received invalid frame (too short), ignoring.")
 			continue
 		}
 		// Parse the frame: Seq(8) + Ack(8) + Payload
@@ -295,7 +295,7 @@ func (as *ARWStream) replayUnacked(conn *websocket.Conn) {
 		err := conn.WriteMessage(websocket.BinaryMessage, frame)
 		as.writemu.Unlock()
 		if err != nil {
-			log.Printf("[ARWS] Failed to replay unacked segment Seq=%d: %v", seg.seq, err)
+			log.Printf("[arws] Failed to replay unacked segment Seq=%d: %v", seg.seq, err)
 			return
 		}
 	}

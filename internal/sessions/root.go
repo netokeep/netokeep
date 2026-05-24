@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"netokeep/pkg/transport"
+	"netokeep/pkg/utils"
 	"sync"
 	"sync/atomic"
 
@@ -108,7 +109,7 @@ func (sm *SessionManager) Traffic2Session(clientConn net.Conn, header []byte) er
 
 		// Entering Relay, exit immediately after starting relay
 		go func() {
-			transport.Relay(clientConn, stream)
+			utils.Relay(clientConn, stream)
 		}()
 		success = true
 		return false // stop ranging after successfully forwarding the traffic
