@@ -7,8 +7,10 @@
         "port": 1080,
         "allow": [
             "*.openai.com",
+            "*.anthropic.com",
             "*.claude.ai",
-            "*.claude.com"
+            "*.claude.com",
+            "*.googleapis.com"
         ]
     }
 }

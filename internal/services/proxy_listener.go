@@ -65,7 +65,7 @@ func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, l
 
 				// match the request host with server rules. If not matched, close the connection directly.
 				if !matcher.Match(host) {
-					log.Printf("[listener] Connection request to unmatched host: %s, closing connection.", host)
+					log.Printf("[listener] Unmatched host: %s, closing.", host)
 					conn.Close()
 					return
 				}

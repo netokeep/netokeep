@@ -2,7 +2,7 @@ package rules
 
 import (
 	"net"
-	"path"
+	"net/netip"
 	"strings"
 )
 
@@ -12,13 +12,18 @@ import (
 // 1. Any deny rule matches -> false
 // 2. Any allow rule matches -> true
 // 3. Fallback to DefaultAllow
+//
+// Rule patterns (compatible with xproxy AddFromString):
+//   - "example.com"        exact hostname match
+//   - "1.2.3.4"            exact IP match
+//   - "10.0.0.0/8"         CIDR match
+//   - "*.example.com"      zone match: example.com and all its subdomains
 type RuleMatcher struct {
 	DefaultAllow bool
 	Allow        []string
 	Deny         []string
 }
 
-// NewRuleMatcher creates a matcher with the provided default policy and rule lists.
 func NewRuleMatcher(defaultAllow bool, allow []string, deny []string) *RuleMatcher {
 	return &RuleMatcher{
 		DefaultAllow: defaultAllow,
@@ -30,9 +35,9 @@ func NewRuleMatcher(defaultAllow bool, allow []string, deny []string) *RuleMatch
 // Match reports whether the provided host should be allowed.
 //
 // The input may be:
-// - a plain hostname, such as "localhost"
-// - an IP address, such as "127.0.0.1"
-// - a host with port, such as "127.0.0.1:8080" or "[::1]:8080"
+//   - a plain hostname, such as "localhost"
+//   - an IP address, such as "127.0.0.1"
+//   - a host with port, such as "127.0.0.1:8080" or "[::1]:8080"
 func (r *RuleMatcher) Match(host string) bool {
 	if r == nil {
 		return false
@@ -66,21 +71,25 @@ func matchPattern(host, pattern string) bool {
 
 	host = strings.ToLower(strings.TrimSpace(host))
 
-	if strings.Contains(pattern, "*") {
-		ok, err := path.Match(pattern, host)
-		return err == nil && ok
+	// CIDR: 10.0.0.0/8, 2001:db8::/32
+	if prefix, err := netip.ParsePrefix(pattern); err == nil {
+		addr, err := netip.ParseAddr(host)
+		return err == nil && prefix.Contains(addr)
 	}
 
-	if _, cidr, err := net.ParseCIDR(pattern); err == nil {
-		ip := net.ParseIP(host)
-		return ip != nil && cidr.Contains(ip)
+	// Exact IP: 127.0.0.1, ::1
+	if addr, err := netip.ParseAddr(pattern); err == nil {
+		hostAddr, err := netip.ParseAddr(host)
+		return err == nil && addr == hostAddr
 	}
 
-	if ip := net.ParseIP(pattern); ip != nil {
-		hostIP := net.ParseIP(host)
-		return hostIP != nil && ip.Equal(hostIP)
+	// Zone match: "*.example.com" matches "example.com" and all subdomains.
+	// Normalise: strip the "*" prefix, then match by suffix.
+	if strings.HasPrefix(pattern, "*.") {
+		return host == pattern[2:] || strings.HasSuffix(host, pattern[1:])
 	}
 
+	// Exact hostname
 	return host == pattern
 }
 

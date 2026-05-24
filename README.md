@@ -26,10 +26,11 @@ You can download the latest release of NetoKeep and install it. It contains both
 ```bash
 # This command is for Linux AMD64.
 # Download the latest release for based on your system
-wget github.com/netokeep/netokeep/releases/latest/download/netokeep-linux-amd64-installer
-chmod +x netokeep-linux-amd64-installer
-./netokeep-linux-amd64-installer
-rm -f netokeep-linux-amd64-installer
+INSTALLER="netokeep-linux-amd64-installer"
+wget "github.com/netokeep/netokeep/releases/latest/download/$INSTALLER"
+chmod +x "$INSTALLER"
+./"$INSTALLER"
+rm -f "$INSTALLER"
 ```
 
 Install dependencies.
@@ -55,11 +56,11 @@ ssh-keygen -A
 Open a new terminal and run:
 
 ```bash
-# i: The TCP proxy port (protocol: HTTP)
-# o: The forwarding port for SSH traffc and Proxy traffic
-# You are allowed to control the traffic to proxy in `~/.config/netokeep/nks_settings.json`
-nks start -i 7890 -o 7222
+nks start
 ```
+> - i: The TCP proxy port (protocol: HTTP, default 7890)
+> - o: The forwarding port for SSH traffc and Proxy traffic (default 7222)
+> - Control the traffic to proxy in `~/.config/netokeep/nks_settings.json`
 
 Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
@@ -70,15 +71,16 @@ Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 Create the NetoKeep client to connect to your server:
 
 ```bash
-# f: forward the server traffic (default false)
-# p: use proxy rules in config file `~/.config/netokeep/nk_settings.json`
-nk start -s 2222 -r <HTTP_LINK>
+nk start -r <HTTP_LINK>
 ```
+> - s: Assign the port for ssh connection
+> - f: Forward the server traffic (default false)
+> - p: Use proxy rules in `~/.config/netokeep/nk_settings.json`, (default false)
 
 #### 2. Connect to your container using SSH
 
 ```bash
-# ssh-keygen -R "[localhost]:2222"
+# ssh-keygen -R "[localhost]:2222" # command for removing previous host
 ssh -p 2222 root@localhost
 ```
 > If you want to enable Internet access for your container,

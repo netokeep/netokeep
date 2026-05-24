@@ -46,13 +46,19 @@ func TestRuleMatcherMatch(t *testing.T) {
 			want:    true,
 		},
 		{
-			name:    "allow wildcard local domain",
+			name:    "allow suffix match subdomain",
 			matcher: NewRuleMatcher(false, []string{"*.local"}, nil),
 			host:    "demo.local",
 			want:    true,
 		},
 		{
-			name:    "deny wildcard github domain",
+			name:    "allow suffix match base domain",
+			matcher: NewRuleMatcher(false, []string{"*.local"}, nil),
+			host:    "local",
+			want:    true,
+		},
+		{
+			name:    "deny suffix match github domain",
 			matcher: NewRuleMatcher(true, []string{"*.local"}, []string{"*.github.com"}),
 			host:    "api.github.com",
 			want:    false,
