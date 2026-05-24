@@ -24,7 +24,7 @@ func createStatusCmd() *cobra.Command {
 			pid, err := local.ReadPID(name)
 			if err != nil {
 				fmt.Printf("● netokeep.service - Netokeep Proxy Client\n")
-				fmt.Printf("   Status: Error (Could not locate PID file: %v)\n", err)
+				fmt.Printf("   Status: Error (Could not locate PID file.)\n")
 				return
 			}
 			logPath := logging.LogPath(name)

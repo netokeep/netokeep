@@ -18,7 +18,7 @@ func createStopCmd() *cobra.Command {
 			// 1. Read the PID from the file
 			pid, err := local.ReadPID("nks")
 			if err != nil {
-				fmt.Printf("Error: Could not read PID file: %v\n", err)
+				fmt.Printf("Error: Could not read PID file.")
 				return
 			}
 
