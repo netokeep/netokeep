@@ -14,7 +14,9 @@
             "*.claude.ai",
             "*.claude.com",
             "*.googleapis.com",
-            "*.google.com"
+            "*.google.com",
+            "*.edu.cn",
+            "*.nvidia.com"
         ],
         "deny": [
             "localhost",
