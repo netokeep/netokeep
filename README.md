@@ -101,7 +101,7 @@ The previous programs are stored in differnt locations. You could run the follow
 ```bash
 sudo rm -rf /usr/local/bin/nk
 sudo rm -rf /usr/local/bin/nks
-sudo rm -rf ~/.local/share/netokeep/netokeep.pid
+sudo rm -rf ~/.local/share/netokeep
 ```
 
 ## Acknowledgement
