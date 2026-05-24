@@ -6,7 +6,6 @@ import (
 	"netokeep/internal/local"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -14,34 +13,41 @@ import (
 func createStartCmd() *cobra.Command {
 	var portSsh uint16
 	var remoteAddr string
-	var name string
 	var forwardTraffic bool
 	var useProxy bool
 
 	var startCmd = &cobra.Command{
-		Use:   "start",
+		Use:   "start [name]",
 		Short: "Start the netokeep client.",
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			// Check if the server is already running
-			if pid, err := local.ReadPID(name); err == nil {
-				if process, err := os.FindProcess(pid); err == nil {
-					if err := process.Signal(syscall.Signal(0)); err == nil {
-						fmt.Printf("Netokeep server is already running (PID: %d)\n", pid)
-						fmt.Printf("If you want to start one new instance, \n\tplease run the command with '--name' flag and specify a different name.\n")
-						return
-					}
-				}
+			name := "default"
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			// Check if the client is already running
+			pid, alive := local.IsAlive(name)
+			if alive {
+				fmt.Printf("Netokeep client is already running (PID: %d)\n", pid)
+				fmt.Printf("If you want to start one new instance, \n")
+				fmt.Printf("please run the command with a different name and port: nk start <name> -s <port>\n")
+				return
 			}
 
 			// Start the client
 			executable, _ := os.Executable()
 			argArr := []string{
 				"core",
+				name,
 				"-r", remoteAddr,
 				"-s", fmt.Sprintf("%d", portSsh),
-				"-n", name,
-				"-f", fmt.Sprintf("%t", forwardTraffic),
-				"-p", fmt.Sprintf("%t", useProxy),
+			}
+			if forwardTraffic {
+				argArr = append(argArr, "-f")
+			}
+			if useProxy {
+				argArr = append(argArr, "-p")
 			}
 			newCmd := exec.Command(executable, argArr...)
 			newCmd.Stdout = nil
@@ -61,7 +67,6 @@ func createStartCmd() *cobra.Command {
 
 	startCmd.Flags().StringVarP(&remoteAddr, "remote-address", "r", "", "NKS server address")
 	startCmd.Flags().Uint16VarP(&portSsh, "ssh-port", "s", 2222, "SSH port")
-	startCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
 	startCmd.Flags().BoolVarP(&forwardTraffic, "forward-traffic", "f", false, "forward SSH traffic")
 	startCmd.Flags().BoolVarP(&useProxy, "use-proxy", "p", false, "use proxy for outgoing traffic")
 	startCmd.MarkFlagRequired("remote-address")

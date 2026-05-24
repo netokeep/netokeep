@@ -3,6 +3,8 @@ package local
 import (
 	"os"
 	"path/filepath"
+
+	"runtime"
 )
 
 func configDir() string {
@@ -29,8 +31,12 @@ func RemoveConfigDir() error {
 }
 
 func RemovePrograms() error {
-	nkBin := filepath.Join(binDir(), "nk")
-	nksBin := filepath.Join(binDir(), "nks")
+	ext := ""
+	if runtime.GOOS == "windows" {
+		ext = ".exe"
+	}
+	nkBin := filepath.Join(binDir(), "nk"+ext)
+	nksBin := filepath.Join(binDir(), "nks"+ext)
 	if err := os.Remove(nkBin); err != nil && !os.IsNotExist(err) {
 		return err
 	}

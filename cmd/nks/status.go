@@ -6,7 +6,6 @@ import (
 	"netokeep/internal/logging"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -26,23 +25,15 @@ func createStatusCmd() *cobra.Command {
 
 			fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
 
-			// 1. Check the PID and process
-			isRunning := false
-			if process, err := os.FindProcess(pid); err == nil {
-				if err := process.Signal(syscall.Signal(0)); err == nil {
-					isRunning = true
-				}
-			}
-
-			// 2. Print the systemctl like status information
-			if isRunning {
+			// Print the systemctl like status information
+			if local.IsPIDAlive(pid) {
 				fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
 				fmt.Printf("     Main PID: %d (netokeep)\n", pid)
 			} else {
 				fmt.Printf("   Active: \033[31minactive (dead)\033[0m\n")
 			}
 
-			// 3. Log the recent logs (simulating Journal tail output)
+			// Log the recent logs (simulating Journal tail output)
 			fmt.Printf("\nRecent logs:\n")
 			printLastLogs(logPath, 10)
 		},

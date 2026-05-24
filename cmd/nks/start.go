@@ -7,7 +7,6 @@ import (
 	"netokeep/pkg/utils"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -24,13 +23,14 @@ func createStartCmd() *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			// Check if the server is already running
-			if pid, err := local.ReadPID("nks"); err == nil {
-				if process, err := os.FindProcess(pid); err == nil {
-					if err := process.Signal(syscall.Signal(0)); err == nil {
-						fmt.Printf("Netokeep server is already running (PID: %d)\n", pid)
-						return
-					}
+			pid, alive := local.IsAlive("nks")
+			if alive {
+				pidStr := "unknown"
+				if pid != 0 {
+					pidStr = fmt.Sprintf("%d", pid)
 				}
+				fmt.Printf("Netokeep server is already running (PID: %s).\n", pidStr)
+				return
 			}
 			// Start the server
 			executable, _ := os.Executable()

@@ -38,3 +38,19 @@ func ReadPort(name string) (uint16, error) {
 }
 
 func RemovePort(name string) error { return os.Remove(portPath(name)) }
+
+// IsAlive checks whether a named instance is still running by reading its PID
+// and verifying the process exists. Works cross-platform.
+func IsAlive(name string) (int, bool) {
+	pid, err := ReadPID(name)
+	if err != nil {
+		return 0, false
+	}
+	return pid, IsPIDAlive(pid)
+}
+
+// Terminate tries graceful shutdown first (SIGINT / CTRL_BREAK_EVENT),
+// falling back to force kill (SIGKILL / TerminateProcess).
+func Terminate(pid int) error {
+	return terminateProcess(pid)
+}

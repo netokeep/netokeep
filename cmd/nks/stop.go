@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"netokeep/internal/local"
-	"os"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -24,27 +22,17 @@ func createStopCmd() *cobra.Command {
 				return
 			}
 
-			// 2. Find the process
-			process, err := os.FindProcess(pid)
-			if err != nil {
-				fmt.Printf("Error: Could not find process with PID %d\n", pid)
-				return
-			}
-
-			// 3. Send SIGTERM (graceful shutdown)
+			// 2. Terminate the process (platform-specific)
 			fmt.Printf("Stopping netokeep (PID %d)... ", pid)
-			err = process.Signal(syscall.SIGTERM)
-			if err != nil {
-				fmt.Printf("\nError: Failed to send shutdown signal: %v\n", err)
+			if err := local.Terminate(pid); err != nil {
+				fmt.Printf("\nError: Failed to stop process: %v\n", err)
 				return
 			}
 
-			// 4. Wait a moment for the process to exit and cleanup the PID file
-			// We poll the process state for up to 5 seconds
+			// 3. Wait for the process to exit (poll PID for up to 5 seconds)
 			success := false
 			for range 10 {
-				// Signal(0) checks if the process still exists
-				if err := process.Signal(syscall.Signal(0)); err != nil {
+				if !local.IsPIDAlive(pid) {
 					success = true
 					break
 				}
@@ -53,7 +41,9 @@ func createStopCmd() *cobra.Command {
 
 			if success {
 				// Cleanup the PID file after successful stop
-				// local.RemovePID("nks")
+				if err := local.RemovePID("nks"); err != nil {
+					fmt.Printf("Warning: Failed to remove PID file: %v\n", err)
+				}
 				fmt.Println("\033[32mstopped\033[0m")
 			} else {
 				fmt.Println("\nWarning: Process is taking too long to stop. You might need to kill it manually.")

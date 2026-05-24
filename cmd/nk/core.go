@@ -17,15 +17,20 @@ import (
 func createCoreCmd() *cobra.Command {
 	var portSsh uint16
 	var remoteAddr string
-	var name string
 	var forwardTraffic bool
 	var useProxy bool
 
 	var coreCmd = &cobra.Command{
-		Use:    "core",
+		Use:    "core [name]",
 		Hidden: true,
 		Short:  "Start the netokeep client in the foreground.",
+		Args:   cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			name := "default"
+			if len(args) > 0 {
+				name = args[0]
+			}
+
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
@@ -57,7 +62,6 @@ func createCoreCmd() *cobra.Command {
 
 	coreCmd.Flags().StringVarP(&remoteAddr, "remote-address", "r", "", "NKS server address")
 	coreCmd.Flags().Uint16VarP(&portSsh, "ssh-port", "s", 2222, "SSH port")
-	coreCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
 	coreCmd.Flags().BoolVarP(&forwardTraffic, "forward-traffic", "f", false, "forward SSH traffic")
 	coreCmd.Flags().BoolVarP(&useProxy, "use-proxy", "p", false, "use proxy for outgoing traffic")
 	coreCmd.MarkFlagRequired("remote-address")

@@ -6,18 +6,21 @@ import (
 	"netokeep/internal/logging"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
 
 func createStatusCmd() *cobra.Command {
-	var name string
-
 	var statusCmd = &cobra.Command{
-		Use:   "status",
+		Use:   "status [name]",
 		Short: "Check the status of the netokeep client.",
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			name := "default"
+			if len(args) > 0 {
+				name = args[0]
+			}
+
 			pid, err := local.ReadPID(name)
 			if err != nil {
 				fmt.Printf("● netokeep.service - Netokeep Proxy Client\n")
@@ -28,29 +31,19 @@ func createStatusCmd() *cobra.Command {
 
 			fmt.Printf("● netokeep.service - Netokeep Proxy Client\n")
 
-			// 1. Check the PID and process
-			isRunning := false
-			if process, err := os.FindProcess(pid); err == nil {
-				if err := process.Signal(syscall.Signal(0)); err == nil {
-					isRunning = true
-				}
-			}
-
-			// 2. Print the systemctl like status information
-			if isRunning {
+			// Print the systemctl like status information
+			if local.IsPIDAlive(pid) {
 				fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
 				fmt.Printf("     Main PID: %d (netokeep)\n", pid)
 			} else {
 				fmt.Printf("   Active: \033[31minactive (dead)\033[0m\n")
 			}
 
-			// 3. Log the recent logs (simulating Journal tail output)
+			// Log the recent logs (simulating Journal tail output)
 			fmt.Printf("\nRecent logs:\n")
 			printLastLogs(logPath, 10)
 		},
 	}
-
-	statusCmd.Flags().StringVarP(&name, "name", "n", "default", "name of the netokeep client instance")
 
 	return statusCmd
 }

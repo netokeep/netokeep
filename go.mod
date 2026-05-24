@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/net v0.53.0
+	golang.org/x/sys v0.43.0
 )
 
 require (
@@ -13,7 +14,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

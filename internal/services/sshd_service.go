@@ -9,26 +9,21 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 func StartSshdService() (uint16, func(), error) {
-	if sshPid, err := local.ReadPID("sshd"); err == nil {
-		if process, err := os.FindProcess(sshPid); err == nil {
-			if err := process.Signal(syscall.Signal(0)); err == nil {
-				// If service is already running, return the existing port
-				port, err := local.ReadPort("sshd")
-				if err != nil {
-					log.Printf("[sshd] Error in reading SSH port: %v\n", err)
-				}
-				portStr := "unknown"
-				if err == nil && port != 0 {
-					portStr = strconv.FormatUint(uint64(port), 10)
-				}
-				log.Printf("[sshd] SSHD service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
-				return port, cleanupFunc(sshPid), nil
-			}
+	sshPid, alive := local.IsAlive("sshd")
+	if alive {
+		port, err := local.ReadPort("sshd")
+		if err != nil {
+			log.Printf("[sshd] Error in reading SSH port: %v\n", err)
 		}
+		portStr := "unknown"
+		if err == nil && port != 0 {
+			portStr = strconv.FormatUint(uint64(port), 10)
+		}
+		log.Printf("[sshd] SSHD service is already running (PID: %d, Port: %s)\n", sshPid, portStr)
+		return port, cleanupFunc(sshPid), nil
 	}
 
 	// Find an available free port from a high range
@@ -70,13 +65,8 @@ func StartSshdService() (uint16, func(), error) {
 func cleanupFunc(sshPid int) func() {
 	return func() {
 		log.Printf("[sshd] Stopping sshd process (PID: %d)...", sshPid)
-		process, err := os.FindProcess(sshPid)
-		if err != nil {
-			log.Printf("[sshd] Failed to find sshd process with PID %d: %v", sshPid, err)
-			return
-		}
-		if err := process.Signal(syscall.SIGTERM); err != nil {
-			log.Printf("[sshd] Failed to send SIGTERM to sshd process with PID %d: %v", sshPid, err)
+		if err := local.Terminate(sshPid); err != nil {
+			log.Printf("[sshd] Failed to stop sshd process with PID %d: %v", sshPid, err)
 			return
 		}
 		if err := local.RemovePID("sshd"); err != nil {
