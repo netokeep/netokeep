@@ -6,6 +6,7 @@ import (
 	"netokeep/internal/local"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/fatih/color"
 )
@@ -38,8 +39,12 @@ func main() {
 	}
 
 	// Copy the binaries to the bin directory
-	nkName := "nk"
-	nksName := "nks"
+	suffix := ""
+	if runtime.GOOS == "windows" {
+		suffix = ".exe"
+	}
+	nkName := "nk" + suffix
+	nksName := "nks" + suffix
 	install := func(name string, data []byte) {
 		path := filepath.Join(binDir, name)
 		if err := os.WriteFile(path, data, 0755); err != nil {

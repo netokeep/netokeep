@@ -1,12 +1,12 @@
 # IDE Settings
 .openclaw/
 .claude/
-.sii/
 .vscode/
 .idea/
 
 # Cache files
 .DS_Store
+.gocache/
 
 # Build files
 release/
