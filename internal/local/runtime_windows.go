@@ -2,7 +2,11 @@
 
 package local
 
-import "golang.org/x/sys/windows"
+import (
+	"os"
+
+	"golang.org/x/sys/windows"
+)
 
 // IsPIDAlive checks whether a process with the given PID is still running.
 func IsPIDAlive(pid int) bool {
@@ -18,6 +22,17 @@ func IsPIDAlive(pid int) bool {
 		return false
 	}
 	return exitCode == 259 // STILL_ACTIVE
+}
+
+func removeRunningProgram(path string) error {
+	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	p, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return err
+	}
+	return windows.MoveFileEx(p, nil, windows.MOVEFILE_DELAY_UNTIL_REBOOT)
 }
 
 func terminateProcess(pid int) error {

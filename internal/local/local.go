@@ -37,10 +37,10 @@ func RemovePrograms() error {
 	}
 	nkBin := filepath.Join(binDir(), "nk"+ext)
 	nksBin := filepath.Join(binDir(), "nks"+ext)
-	if err := os.Remove(nkBin); err != nil && !os.IsNotExist(err) {
+	if err := removeRunningProgram(nkBin); err != nil {
 		return err
 	}
-	if err := os.Remove(nksBin); err != nil && !os.IsNotExist(err) {
+	if err := removeRunningProgram(nksBin); err != nil {
 		return err
 	}
 	return nil
