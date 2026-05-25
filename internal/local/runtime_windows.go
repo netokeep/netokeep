@@ -4,6 +4,9 @@ package local
 
 import (
 	"os"
+	"os/exec"
+	"path/filepath"
+	"syscall"
 
 	"golang.org/x/sys/windows"
 )
@@ -25,14 +28,23 @@ func IsPIDAlive(pid int) bool {
 }
 
 func removeRunningProgram(path string) error {
-	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
-		return nil
-	}
-	p, err := windows.UTF16PtrFromString(path)
-	if err != nil {
+	tmpFile := filepath.Join(os.TempDir(), "nk_cleanup.bat")
+	script := "@echo off\r\n" +
+		":loop\r\n" +
+		"ping -n 2 127.0.0.1 >nul\r\n" +
+		"del /f \"" + path + "\" 2>nul\r\n" +
+		"if exist \"" + path + "\" goto loop\r\n" +
+		"del \"%~f0\"\r\n"
+
+	if err := os.WriteFile(tmpFile, []byte(script), 0644); err != nil {
 		return err
 	}
-	return windows.MoveFileEx(p, nil, windows.MOVEFILE_DELAY_UNTIL_REBOOT)
+
+	cmd := exec.Command("cmd.exe", "/c", tmpFile)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: windows.CREATE_NO_WINDOW,
+	}
+	return cmd.Start()
 }
 
 func terminateProcess(pid int) error {
