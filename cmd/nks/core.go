@@ -40,12 +40,12 @@ func createCoreCmd() *cobra.Command {
 
 			// Handle outgoing traffic
 			eg.Go(func() error {
-				return services.StartProxyListener(egCtx, manager, portIn)
+				return services.StartProxyListener(egCtx, stop, manager, portIn)
 			})
 
 			// Handle incoming traffic
 			eg.Go(func() error {
-				return services.StartTrafficServer(egCtx, manager, portOut, portSsh)
+				return services.StartTrafficServer(egCtx, stop, manager, portOut, portSsh)
 			})
 
 			<-egCtx.Done()

@@ -22,7 +22,7 @@ import (
 	xproxy "golang.org/x/net/proxy"
 )
 
-func StartTrafficClient(ctx context.Context, manager *sessions.SessionManager, remoteAddr string, forwardTraffic bool, useProxy bool) error {
+func StartTrafficClient(ctx context.Context, stop context.CancelFunc, manager *sessions.SessionManager, remoteAddr string, forwardTraffic bool, useProxy bool) error {
 	var wg sync.WaitGroup
 	// Generate a unique session ID for this client instance
 	sid := uuid.New().String()
@@ -69,7 +69,12 @@ func StartTrafficClient(ctx context.Context, manager *sessions.SessionManager, r
 	manager.NewSession(sid, session, arwstream, true)
 
 	go func() {
-		defer manager.RemoveSession(sid)
+		defer func() {
+			manager.RemoveSession(sid)
+			if manager.Len() == 0 {
+				stop()
+			}
+		}()
 
 		for {
 			conn, err := session.Accept()

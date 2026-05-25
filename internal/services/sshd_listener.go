@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-func StartSshdListener(ctx context.Context, manager *sessions.SessionManager, portSsh uint16) error {
+func StartSshdListener(ctx context.Context, _ context.CancelFunc, manager *sessions.SessionManager, portSsh uint16) error {
 	var wg sync.WaitGroup
 	lc := net.ListenConfig{}
 	// Use local adress to avoid external connections

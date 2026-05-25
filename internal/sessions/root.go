@@ -58,6 +58,15 @@ func (sm *SessionManager) HasSession(sid string) bool {
 	return ok
 }
 
+func (sm *SessionManager) Len() int {
+	count := 0
+	sm.sessions.Range(func(_, _ any) bool {
+		count++
+		return true
+	})
+	return count
+}
+
 func (sm *SessionManager) UpdateSession(sid string, wsConn *websocket.Conn, forwardTraffic bool) {
 	if val, ok := sm.sessions.Load(sid); ok {
 		userSession, ok := val.(*UserSession)

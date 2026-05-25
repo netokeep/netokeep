@@ -20,7 +20,7 @@ StartProxyListener create one http proxy server to receive local traffic from `l
 
 StartProxy dose not defer the connection, the caller should handle the connection lifecycle in the handler function.
 */
-func StartProxyListener(ctx context.Context, manager *sessions.SessionManager, listenPort uint16) error {
+func StartProxyListener(ctx context.Context, _ context.CancelFunc, manager *sessions.SessionManager, listenPort uint16) error {
 	var wg sync.WaitGroup
 	lc := net.ListenConfig{}
 

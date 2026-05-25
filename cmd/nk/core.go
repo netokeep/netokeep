@@ -42,12 +42,12 @@ func createCoreCmd() *cobra.Command {
 
 			// Handle ssh traffic
 			eg.Go(func() error {
-				return services.StartSshdListener(egCtx, manager, portSsh)
+				return services.StartSshdListener(egCtx, stop, manager, portSsh)
 			})
 
 			// Handle incoming traffic
 			eg.Go(func() error {
-				return services.StartTrafficClient(egCtx, manager, remoteAddr, forwardTraffic, useProxy)
+				return services.StartTrafficClient(egCtx, stop, manager, remoteAddr, forwardTraffic, useProxy)
 			})
 
 			<-egCtx.Done()
