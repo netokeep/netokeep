@@ -16,6 +16,9 @@
             "*.googleapis.com",
             "*.google.com",
             "*.edu.cn",
+            "arxiv.org",
+            "pypi.org",
+            "files.pythonhosted.org",
             "*.nvidia.com"
         ],
         "deny": [
