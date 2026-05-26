@@ -73,9 +73,9 @@ Create the NetoKeep client to connect to your server:
 ```bash
 nk start -r <HTTP_LINK>
 ```
-> - s: Assign the port for ssh connection
+> - s: Assign the port for ssh connection (default 2222)
 > - f: Forward the server traffic (default false)
-> - p: Use proxy rules in `~/.config/netokeep/nk_settings.json`, (default false)
+> - p: Use proxy rules in `~/.config/netokeep/nk_settings.json` (default false)
 
 #### 2. Connect to your container using SSH
 
@@ -85,7 +85,8 @@ ssh -p 2222 root@localhost
 ```
 > If you want to enable Internet access for your container,
 > run the following command after connecting to your container.
-> (You can also write them into your `.bashrc` file.)
+> 
+> (You can also write them into your `.bashrc` file. Not recommended.)
 > ```bash
 > export ALL_PROXY=http://127.0.0.1:7890
 > export HTTP_PROXY=http://127.0.0.1:7890
