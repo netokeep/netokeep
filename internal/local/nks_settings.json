@@ -6,6 +6,7 @@
         "allow": [
             "*.github.com",
             "raw.githubusercontent.com",
+            "*.pytorch.org",
             "*.huggingface.co",
             "*.modelscope.cn",
             "*.deepseek.com",
@@ -20,7 +21,8 @@
             "arxiv.org",
             "pypi.org",
             "files.pythonhosted.org",
-            "*.nvidia.com"
+            "*.nvidia.com",
+            "*.nvidia.cn"
         ],
         "deny": [
             "localhost",
