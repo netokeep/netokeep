@@ -5,6 +5,7 @@
         "default": "deny",
         "allow": [
             "*.github.com",
+            "raw.githubusercontent.com",
             "*.huggingface.co",
             "*.modelscope.cn",
             "*.deepseek.com",
