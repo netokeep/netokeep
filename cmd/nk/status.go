@@ -33,8 +33,14 @@ func createStatusCmd() *cobra.Command {
 
 			// Print the systemctl like status information
 			if local.IsPIDAlive(pid) {
-				fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
-				fmt.Printf("     Main PID: %d (netokeep)\n", pid)
+				portSsh, err := local.ReadPort(name + "ssh")
+				if err == nil {
+					fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
+					fmt.Printf("     Main PID: %d (netokeep), SSH Port: %d\n", pid, portSsh)
+				} else {
+					fmt.Printf("   Active: \033[32mactive (running)\033[0m since %s\n", getFileModTime(logPath))
+					fmt.Printf("     Main PID: %d (netokeep)\n", pid)
+				}
 			} else {
 				fmt.Printf("   Active: \033[31minactive (dead)\033[0m\n")
 			}

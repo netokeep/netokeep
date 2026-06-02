@@ -35,12 +35,16 @@ func createListCmd() *cobra.Command {
 			for _, client := range clients {
 				fmt.Printf("  %-*s: ", maxLen, client)
 				if pid, alive := local.IsAlive(client); alive {
-					fmt.Printf("\033[32mactive (running, PID: %d)\033[0m\n", pid)
+					portSsh, err := local.ReadPort(client + "ssh")
+					if err == nil {
+						fmt.Printf("\033[32mactive (running, PID: %d, SSH Port: %d)\033[0m\n", pid, portSsh)
+					} else {
+						fmt.Printf("\033[32mactive (running, PID: %d)\033[0m\n", pid)
+					}
 				} else {
 					fmt.Printf("\033[31minactive (dead)\033[0m\n")
 				}
 			}
-
 		},
 	}
 }

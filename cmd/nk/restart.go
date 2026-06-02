@@ -27,7 +27,7 @@ func createRestartCmd() *cobra.Command {
 			// 1. Read the previous args
 			argArr, err := local.ReadArgs(name)
 			if err != nil {
-				fmt.Printf("Error: Could not read previous arguments for '%s'. Is it configured/running? (%v)\n", name, err)
+				fmt.Printf("Error: Could not read previous arguments for '%s'. Is it configured? (%v)\n", name, err)
 				return
 			}
 

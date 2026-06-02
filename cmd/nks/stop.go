@@ -44,6 +44,12 @@ func createStopCmd() *cobra.Command {
 				if err := local.RemovePID("nks"); err != nil {
 					fmt.Printf("Warning: Failed to remove PID file: %v\n", err)
 				}
+				if err := local.RemovePort("nks-in"); err != nil {
+					fmt.Printf("Warning: Failed to remove Port file: %v\n", err)
+				}
+				if err := local.RemovePort("nks-out"); err != nil {
+					fmt.Printf("Warning: Failed to remove Port file: %v\n", err)
+				}
 				fmt.Println("\033[32mstopped\033[0m")
 			} else {
 				fmt.Println("\nWarning: Process is taking too long to stop. You might need to kill it manually.")
