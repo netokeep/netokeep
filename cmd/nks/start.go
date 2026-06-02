@@ -42,6 +42,7 @@ func createStartCmd() *cobra.Command {
 				"-o", fmt.Sprintf("%d", portOut),
 			}
 			newCmd := exec.Command(executable, argArr...)
+			utils.SetupDetachedProcess(newCmd)
 			newCmd.Stdout = nil
 			newCmd.Stderr = nil
 			newCmd.Stdin = nil

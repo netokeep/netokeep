@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"netokeep/internal/local"
+	"netokeep/pkg/utils"
 	"os"
 	"os/exec"
 
@@ -55,6 +56,7 @@ func createStartCmd() *cobra.Command {
 				argArr = append(argArr, "-p")
 			}
 			newCmd := exec.Command(executable, argArr...)
+			utils.SetupDetachedProcess(newCmd)
 			newCmd.Stdout = nil
 			newCmd.Stderr = nil
 			newCmd.Stdin = nil
