@@ -69,6 +69,9 @@ func createStartCmd() *cobra.Command {
 			if err := local.WritePort(name+"ssh", portSsh); err != nil {
 				log.Printf("Failed to write Port file: %v", err)
 			}
+			if err := local.WriteArgs(name, argArr); err != nil {
+				log.Printf("Failed to write Args file: %v", err)
+			}
 			fmt.Printf("Netokeep client started in background (PID: %d)\n", newCmd.Process.Pid)
 		},
 	}

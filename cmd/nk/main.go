@@ -20,6 +20,9 @@ func main() {
 	rootCmd.AddCommand(createStartCmd())
 	rootCmd.AddCommand(createCoreCmd())
 	rootCmd.AddCommand(createStopCmd())
+	rootCmd.AddCommand(createRestartCmd())
 	rootCmd.AddCommand(createStatusCmd())
+	rootCmd.AddCommand(createListCmd())
+	rootCmd.AddCommand(createClearCmd())
 	rootCmd.Execute()
 }

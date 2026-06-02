@@ -1,6 +1,7 @@
 package local
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,6 +40,28 @@ func ReadPort(name string) (uint16, error) {
 
 func RemovePort(name string) error { return os.Remove(portPath(name)) }
 
+func argsPath(name string) string { return filepath.Join(stateDir(), name+".args") }
+
+func WriteArgs(name string, args []string) error {
+	data, err := json.Marshal(args)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(argsPath(name), data, 0644)
+}
+
+func ReadArgs(name string) ([]string, error) {
+	data, err := os.ReadFile(argsPath(name))
+	if err != nil {
+		return nil, err
+	}
+	var args []string
+	err = json.Unmarshal(data, &args)
+	return args, err
+}
+
+func RemoveArgs(name string) error { return os.Remove(argsPath(name)) }
+
 // IsAlive checks whether a named instance is still running by reading its PID
 // and verifying the process exists. Works cross-platform.
 func IsAlive(name string) (int, bool) {
@@ -53,4 +76,22 @@ func IsAlive(name string) (int, bool) {
 // falling back to force kill (SIGKILL / TerminateProcess).
 func Terminate(pid int) error {
 	return terminateProcess(pid)
+}
+
+// ListClients returns a list of all client names that have a PID file in the state directory.
+func ListClients() ([]string, error) {
+	files, err := os.ReadDir(stateDir())
+	if err != nil {
+		return nil, err
+	}
+	var clients []string
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".pid" {
+			name := file.Name()[:len(file.Name())-4] // Remove .pid extension
+			if name != "nks" && name != "sshd" {     // Exclude nks server instance
+				clients = append(clients, name)
+			}
+		}
+	}
+	return clients, nil
 }

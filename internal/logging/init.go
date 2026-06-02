@@ -36,3 +36,16 @@ func InitLogging(name string) {
 	multiWriter := io.MultiWriter(os.Stdout, lumberjackLogger)
 	log.SetOutput(multiWriter)
 }
+
+func ClearLogs(name string) error {
+	pattern := filepath.Join(logDir(), name+"*.log*")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+
+	for _, match := range matches {
+		_ = os.Remove(match)
+	}
+	return nil
+}
