@@ -31,9 +31,9 @@ func createStartCmd() *cobra.Command {
 			if alive {
 				portSsh, err := local.ReadPort(name + "ssh")
 				if err == nil {
-					fmt.Printf("Netokeep client is already running (PID: %d, SSH Port: %d)\n", pid, portSsh)
+					fmt.Printf("NetoKeep client is already running (PID: %d, SSH Port: %d)\n", pid, portSsh)
 				} else {
-					fmt.Printf("Netokeep client is already running (PID: %d)\n", pid)
+					fmt.Printf("NetoKeep client is already running (PID: %d)\n", pid)
 				}
 				fmt.Printf("If you want to start one new instance, \n")
 				fmt.Printf("run 'nk start <name> -s <port>' with a different name and port.\n")
@@ -72,7 +72,7 @@ func createStartCmd() *cobra.Command {
 			if err := local.WriteArgs(name, argArr); err != nil {
 				log.Printf("Failed to write Args file: %v", err)
 			}
-			fmt.Printf("Netokeep client started in background (PID: %d)\n", newCmd.Process.Pid)
+			fmt.Printf("NetoKeep client started in background (PID: %d)\n", newCmd.Process.Pid)
 		},
 	}
 

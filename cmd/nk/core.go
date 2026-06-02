@@ -56,7 +56,7 @@ func createCoreCmd() *cobra.Command {
 			if err := eg.Wait(); err != nil {
 				log.Printf("[nks] Error in client execution: %v", err)
 			}
-			log.Printf("[nks] Netokeep client stopped.")
+			log.Printf("[nks] NetoKeep client stopped.")
 		},
 	}
 

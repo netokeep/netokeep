@@ -17,13 +17,13 @@ func createStatusCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			pid, err := local.ReadPID("nks")
 			if err != nil {
-				fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
+				fmt.Printf("● netokeep.service - NetoKeep Proxy Server\n")
 				fmt.Printf("   Status: Error (Could not locate PID file.)\n")
 				return
 			}
 			logPath := logging.LogPath("nks")
 
-			fmt.Printf("● netokeep.service - Netokeep Proxy Server\n")
+			fmt.Printf("● netokeep.service - NetoKeep Proxy Server\n")
 
 			// Print the systemctl like status information
 			if local.IsPIDAlive(pid) {

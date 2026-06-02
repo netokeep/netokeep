@@ -28,9 +28,9 @@ func createStartCmd() *cobra.Command {
 				portIn, errIn := local.ReadPort("nks-in")
 				portOut, errOut := local.ReadPort("nks-out")
 				if errIn == nil && errOut == nil {
-					fmt.Printf("Netokeep server is already running (PID: %d, In Port: %d, Out Port: %d).\n", pid, portIn, portOut)
+					fmt.Printf("NetoKeep server is already running (PID: %d, In Port: %d, Out Port: %d).\n", pid, portIn, portOut)
 				} else {
-					fmt.Printf("Netokeep server is already running (PID: %d).\n", pid)
+					fmt.Printf("NetoKeep server is already running (PID: %d).\n", pid)
 				}
 				return
 			}
@@ -59,7 +59,7 @@ func createStartCmd() *cobra.Command {
 			if err := local.WritePort("nks-out", portOut); err != nil {
 				log.Printf("Failed to write Port file: %v", err)
 			}
-			fmt.Printf("Netokeep server started in background (PID: %d)\n", newCmd.Process.Pid)
+			fmt.Printf("NetoKeep server started in background (PID: %d)\n", newCmd.Process.Pid)
 		},
 	}
 
