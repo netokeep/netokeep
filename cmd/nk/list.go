@@ -26,6 +26,11 @@ func createListCmd() *cobra.Command {
 				}
 			}
 
+			if len(clients) == 0 {
+				fmt.Println("No clients found.")
+				return
+			}
+
 			fmt.Printf("Clients:\n")
 			for _, client := range clients {
 				fmt.Printf("  %-*s: ", maxLen, client)
