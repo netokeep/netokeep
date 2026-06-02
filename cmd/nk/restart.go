@@ -15,6 +15,7 @@ import (
 func createRestartCmd() *cobra.Command {
 	var restartCmd = &cobra.Command{
 		Use:   "restart [name]",
+		Aliases: []string{"reconnect"},
 		Short: "Restart the netokeep client.",
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

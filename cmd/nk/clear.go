@@ -12,6 +12,7 @@ import (
 func createClearCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "clear [name]",
+		Aliases: []string{"remove", "rm", "delete", "del", "clean"},
 		Short: "Clear recorded clients and logs.",
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
