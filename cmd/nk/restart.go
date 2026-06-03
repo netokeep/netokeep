@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"netokeep/internal/local"
+	"netokeep/pkg/utils"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,10 +15,10 @@ import (
 
 func createRestartCmd() *cobra.Command {
 	var restartCmd = &cobra.Command{
-		Use:   "restart [name]",
+		Use:     "restart [name]",
 		Aliases: []string{"reconnect"},
-		Short: "Restart the netokeep client.",
-		Args:  cobra.MaximumNArgs(1),
+		Short:   "Restart the netokeep client.",
+		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			name := "default"
 			if len(args) > 0 {
@@ -73,6 +74,7 @@ func createRestartCmd() *cobra.Command {
 			// 3. Start the client with previous args
 			executable, _ := os.Executable()
 			newCmd := exec.Command(executable, argArr...)
+			utils.SetupDetachedProcess(newCmd)
 			newCmd.Stdout = nil
 			newCmd.Stderr = nil
 			newCmd.Stdin = nil

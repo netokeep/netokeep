@@ -65,4 +65,10 @@ func main() {
 		gray(" Next: Run"), orange("nk --help"),
 		gray("or"), orange("nks --help"),
 		gray("to get started."))
+
+	// For windows, add 'Press any key to continue...' at the end
+	if runtime.GOOS == "windows" {
+		fmt.Printf("%s", gray("Press any key to continue..."))
+		fmt.Scanln()
+	}
 }
