@@ -21,7 +21,7 @@ func StartTrafficServer(ctx context.Context, _ context.CancelFunc, manager *sess
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
-	// cfg.EnableKeepAlive = false
+	cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
 
 	mux := http.NewServeMux()

@@ -116,6 +116,7 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 		return
 	}
 	as.reconnecting = true
+	oldConn := as.Conn
 	as.mu.Unlock()
 	defer func() {
 		as.mu.Lock()
@@ -124,8 +125,16 @@ func (as *ARWStream) reconnect(dialer Dialer) {
 	}()
 
 	if dialer == nil {
-		// For server side, if dialer is nil, it means we rely on external UpdateWsConn to trigger reconnection
+		// For server side, if dialer is nil, wait for 16s for client to reconnect, otherwise close the session.
 		log.Printf("[arws] Session closed, waiting for reconnection...")
+		t := time.AfterFunc(16*time.Second, func() { as.Close() })
+		defer t.Stop()
+
+		as.mu.Lock()
+		for !as.isClosed && as.Conn == oldConn {
+			as.reconnected.Wait()
+		}
+		as.mu.Unlock()
 		return
 	}
 	for range 5 {

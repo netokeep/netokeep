@@ -29,7 +29,7 @@ func StartTrafficClient(ctx context.Context, stop context.CancelFunc, manager *s
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
 	// cfg.LogOutput = io.Discard
-	// cfg.EnableKeepAlive = false
+	cfg.EnableKeepAlive = false
 	cfg.MaxStreamWindowSize = 4 * 1024 * 1024 // 4MB
 
 	// Load client matcher for selecting the traffic to be proxied
