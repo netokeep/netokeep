@@ -9,6 +9,9 @@ Setup SSH tunnels and TCP proxies to keep your restricted containers connected t
 
 在受限容器中设置 SSH 隧道和 TCP 代理，以保持它们与外界的连接。
 
+> [!WARNING]
+> v1.2.6中的心跳脚本和短线重连的两个逻辑出现冲突，长时间没有流量通过会导致两侧状态无法对齐。正在解决这个问题。
+
 ```text
 # Use Case
 Container Listening (No Internet) <--> HTTP/HTTPS Link <--> Users
