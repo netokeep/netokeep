@@ -3,7 +3,6 @@ PACKAGE_NAME := netokeep
 DISPLAY_NAME := "NetoKeep"
 
 # Directory definitions
-BUILD_ROOT := ./release/build
 RELEASE_ROOT := ./release
 
 # Target definitions
@@ -18,7 +17,7 @@ PLATFORMS := linux/amd64 darwin/amd64 darwin/arm64 windows/amd64
 
 .PHONY: all format clean build pack nk nks
 
-all: clean build pack
+all: format clean build pack
 
 format:
 	@echo "🎨 Formatting code..."
@@ -29,30 +28,17 @@ clean:
 	@rm -rf $(RELEASE_ROOT)
 
 build: format
-	@for platform in $(PLATFORMS); do \
+	@set -e; for platform in $(PLATFORMS); do \
 		os=$${platform%/*}; \
 		arch=$${platform#*/}; \
-		output_dir=$(BUILD_ROOT)/$$os-$$arch; \
+		suffix=""; \
+		if [ "$$os" = "windows" ]; then suffix=".exe"; fi; \
+		binary_suffix="$$os-$$arch$$suffix"; \
 		echo "🔨 Building $$os/$$arch..."; \
-		mkdir -p $$output_dir; \
-		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $$output_dir/nk $(CLIENT_SRC); \
-		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $$output_dir/nks $(SERVER_SRC); \
+		mkdir -p $(RELEASE_ROOT); \
+		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $(RELEASE_ROOT)/netokeep-client-$$binary_suffix $(CLIENT_SRC); \
+		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $(RELEASE_ROOT)/netokeep-server-$$binary_suffix $(SERVER_SRC); \
 	done
-
-# Unified packaging logic
-pack:
-	@mkdir -p $(RELEASE_ROOT)
-	@for platform in $(PLATFORMS); do \
-		os=$${platform%/*}; \
-		arch=$${platform#*/}; \
-		build_dir=$(BUILD_ROOT)/$$os-$$arch; \
-		cp $(PWD)/cmd/installer/main.go $$build_dir/main.go; \
-		ext=""; [ "$$os" = "windows" ] && ext=".exe"; \
-		echo "📦 Building installer for $$os/$$arch..."; \
-		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" \
-		-o $(RELEASE_ROOT)/$(PACKAGE_NAME)-$$os-$$arch-installer$$ext $$build_dir/main.go; \
-	done
-	@rm -rf $(BUILD_ROOT) # Clean up the temporary binary directory after packaging
 
 # Debug commands
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

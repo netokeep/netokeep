@@ -1,33 +1,28 @@
 name: Build and Release
 
 on:
-    release:
-        types: [published]
+  release:
+    types: [published]
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v6
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-            - name: Setup Go
-              uses: actions/setup-go@v6
-              with:
-                    go-version: '1.26.3'
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
 
-            - name: Install makeself
-              run: sudo apt-get update && sudo apt-get install -y makeself
+      - name: Build via Makefile
+        run: make build
 
-            - name: Build via Makefile
-              run: make build
-
-            - name: Create release archive
-              run: make pack
-
-            - name: Upload release assets
-              uses: softprops/action-gh-release@v2
-              with:
-                files: release/*
-                token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
