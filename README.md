@@ -1,114 +1,71 @@
-# NetoKeep
+<div align="center">
+
+<h1>NetoKeep</h1>
 
 [![go](https://img.shields.io/github/go-mod/go-version/netokeep/netokeep)](https://golang.org/)
 [![license](https://img.shields.io/github/license/netokeep/netokeep)](LICENSE)
 [![release](https://img.shields.io/github/v/release/netokeep/netokeep?color=green)](https://github.com/netokeep/netokeep/releases)
 ![downloads](https://img.shields.io/github/downloads/netokeep/netokeep/total)
 
-Setup SSH tunnels and TCP proxies to keep your restricted containers connected to the outside world.
+</div>
 
 在受限容器中设置 SSH 隧道和 TCP 代理，以保持它们与外界的连接。
 
-> [!WARNING]
-> v1.2.6中的心跳脚本和短线重连的两个逻辑出现冲突，长时间没有流量通过会导致两侧状态无法对齐。正在解决这个问题。
+适用场景：`容器（无外部网络）<--> 代理的HTTP/HTTPS连接 <--> 用户设备`
 
-```text
-# Use Case
-Container Listening (No Internet) <--> HTTP/HTTPS Link <--> Users
+## 安装
+
+**在线安装**
+
+在`MacOS, Linux`上下载：
+```bash
+curl -fsSL https://raw.githubcontent.com/netokeep/netokeep/main/scripts/install.sh | bash
 ```
-
-> Currently, netokeep only supports ws connection.
->
-> 目前 netokeep 仅支持 ws 连接。
-
-## Download
-You can download the latest release of NetoKeep and install it. It contains both the server and client parts.
-
-下载并安装最新版本的 NetoKeep，它包含服务器和客户端两部分。
+在`Windows`上下载：
 
 ```bash
-# This command is for Linux AMD64.
-# Download the latest release for based on your system
-INSTALLER="netokeep-linux-amd64-installer"
-wget "github.com/netokeep/netokeep/releases/latest/download/$INSTALLER"
-chmod +x "$INSTALLER"
-./"$INSTALLER"
-rm -f "$INSTALLER"
+irm https://raw.githubcontent.com/netokeep/netokeep/main/scripts/install.ps1 | iex
 ```
 
-Install dependencies.
+**离线安装**
 
-安装依赖。
+同时下载对应的软件包和安装脚本`scripts/install-offline.sh`或`scripts/install-offline.ps1`。
 
-```bash
-# Add your pubKey into ssh config 添加你的客户端公钥到ssh配置文件中
-read -r -p "Input SSH public key (Enter to skip): " K
-[ -n "$K" ] && install -d -m 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
-[ -n "$K" ] && (grep -qxF "$K" ~/.ssh/authorized_keys 2>/dev/null || echo "$K" >> ~/.ssh/authorized_keys)
-# Install tools 安装工具
-apt update -y
-apt install -y sudo openssh-server
-ssh-keygen -A
-```
+将两者放在统一目录下，并执行对应的离线安装脚本。
 
+## 快速开始
 
-## Quick start
+NetoKeep包含服务器和客户端两部分。其中服务器在容器中运行，客户端在用户设备上运行。
 
-### Server Part
-
-Open a new terminal and run:
+### NetoKeep Server
 
 ```bash
 nks start
 ```
-> - i: The TCP proxy port (protocol: HTTP, default 7890)
-> - o: The forwarding port for SSH traffc and Proxy traffic (default 7222)
-> - Control the traffic to proxy in `~/.config/netokeep/nks_settings.json`
+> - i：流量代理端口（默认关闭）
+> - o；前向转发端口（默认为7222）
+> - 流量转发的配置文件位置`~/.config/netokeep/nks_settings.json`
 
-Then get the HTTP Link for port 7222 provided by your company <HTTP_LINK>.
 
-### Client Part
-
-#### 1. Setup the NetoKeep client
-
-Create the NetoKeep client to connect to your server:
+### NetoKeep Client
 
 ```bash
-nk start -r <HTTP_LINK>
+nk start <name> -r <remote-link> -s <ssh-port>
 ```
-> - s: Assign the port for ssh connection (default 2222)
-> - f: Forward the server traffic (default false)
-> - p: Use proxy rules in `~/.config/netokeep/nk_settings.json` (default false)
+> - r：远程提供的代理HTTP/HTTPS连接
+> - s：暴露给本机用于ssh连接的端口
+> - f：将接收到的流量进一步转发（默认关闭）
+> - 流量转发的配置文件位置`~/.config/netokeep/nks_settings.json`
 
-#### 2. Connect to your container using SSH
+### 日常使用
 
 ```bash
-# ssh-keygen -R "[localhost]:2222" # command for removing previous host
-ssh -p 2222 root@localhost
-```
-> If you want to enable Internet access for your container,
-> run the following command after connecting to your container.
-> 
-> (You can also write them into your `.bashrc` file. Not recommended.)
-> ```bash
-> export ALL_PROXY=http://127.0.0.1:7890
-> export HTTP_PROXY=http://127.0.0.1:7890
-> export HTTPS_PROXY=http://127.0.0.1:7890
-> ```
-
-And enjoy!
-
-## Notes
-
-The previous programs are stored in differnt locations. You could run the following commands to remove them.
-
-```bash
-sudo rm -rf /usr/local/bin/nk
-sudo rm -rf /usr/local/bin/nks
-sudo rm -rf ~/.local/share/netokeep
+ssh -p <ssh-port> root@localhost
 ```
 
-## Acknowledgement
+Enjoy!
+
+## 致谢
 
 - [rtunnel](https://github.com/Sarfflow/rtunnel)
 - [tcp-over-websocket](https://github.com/zanjie1999/tcp-over-websocket)
