@@ -27,6 +27,10 @@ clean:
 	@echo "🧹 Cleaning old releases..."
 	@rm -rf $(RELEASE_ROOT)
 
+test:
+	@echo "🧪 Running tests..."
+	@go test ./...
+
 build: format
 	@set -e; for platform in $(PLATFORMS); do \
 		os=$${platform%/*}; \
