@@ -16,7 +16,10 @@ func LoadClientConf() (data *ClientProxy, err error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Println("Client configuration file not found. Overwriting with default.")
-			SaveClientConf(defaultClientConf)
+			if err := SaveClientConf(defaultClientConf); err != nil {
+				log.Printf("Failed to save defaulg client configuration: %v\n", err)
+				return nil, err
+			}
 			return &defaultClientConf.Proxy, nil
 		}
 		return nil, err
@@ -25,7 +28,8 @@ func LoadClientConf() (data *ClientProxy, err error) {
 	if err := json.Unmarshal(contents, data); err != nil {
 		log.Println("Failed to unmarshal client configuration. Overwriting with default.")
 		if err := SaveClientConf(defaultClientConf); err != nil {
-			log.Printf("Failed to save default client configuration: %v", err)
+			log.Printf("Failed to save default client configuration: %v\n", err)
+			return nil, err
 		}
 		return &defaultClientConf.Proxy, nil
 	}
@@ -37,7 +41,10 @@ func LoadServerConf() (data *ServerRules, err error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Println("Server configuration file not found. Overwriting with default.")
-			SaveServerConf(defaultServerConf)
+			if err := SaveServerConf(defaultServerConf); err != nil {
+				log.Printf("Failed to save default server configuration: %v\n", err)
+				return nil, err
+			}
 			return &defaultServerConf.Rules, nil
 		}
 		return nil, err
@@ -46,7 +53,8 @@ func LoadServerConf() (data *ServerRules, err error) {
 	if err := json.Unmarshal(contents, data); err != nil {
 		log.Println("Failed to unmarshal server configuration. Overwriting with default.")
 		if err := SaveServerConf(defaultServerConf); err != nil {
-			log.Printf("Failed to save default server configuration: %v", err)
+			log.Printf("Failed to save default server configuration: %v\n", err)
+			return nil, err
 		}
 		return &defaultServerConf.Rules, nil
 	}
@@ -58,6 +66,10 @@ func SaveClientConf(conf *ClientConf) error {
 	if err != nil {
 		return err
 	}
+
+	if err := os.MkdirAll(filepath.Dir(clientConfPath), 0755); err != nil {
+		return err
+	}
 	return os.WriteFile(clientConfPath, contents, 0644)
 }
 
@@ -66,6 +78,11 @@ func SaveServerConf(conf *ServerConf) error {
 	if err != nil {
 		return err
 	}
+
+	if err := os.MkdirAll(filepath.Dir(serverConfPath), 0755); err != nil {
+		return err
+	}
+
 	return os.WriteFile(serverConfPath, contents, 0644)
 }
 

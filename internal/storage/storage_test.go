@@ -7,21 +7,20 @@ import (
 )
 
 func setupTestPaths(t *testing.T) {
-    t.Helper()
+	t.Helper()
 
-    oldClientPath := clientConfPath
-    oldServerPath := serverConfPath
+	oldClientPath := clientConfPath
+	oldServerPath := serverConfPath
 
-    dir := t.TempDir()
-    clientConfPath = filepath.Join(dir, "nk_settings.json")
-    serverConfPath = filepath.Join(dir, "nk_server.json")
+	dir := t.TempDir()
+	clientConfPath = filepath.Join(dir, "nk_settings.json")
+	serverConfPath = filepath.Join(dir, "nk_server.json")
 
-    t.Cleanup(func() {
-        clientConfPath = oldClientPath
-        serverConfPath = oldServerPath
-    })
+	t.Cleanup(func() {
+		clientConfPath = oldClientPath
+		serverConfPath = oldServerPath
+	})
 }
-
 
 func TestLoadClientConf(t *testing.T) {
 	setupTestPaths(t)
@@ -57,15 +56,15 @@ func TestSaveServerConf(t *testing.T) {
 
 func TestClearClientConf(t *testing.T) {
 	setupTestPaths(t)
-	if err:= SaveClientConf(&ClientConf{}); err != nil {
+	if err := SaveClientConf(&ClientConf{}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err:= ClearClientConf(); err != nil {
+	if err := ClearClientConf(); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err:=os.Stat(clientConfPath)
+	_, err := os.Stat(clientConfPath)
 	if err == nil {
 		t.Fatalf("Expected file to be removed, got %v", err)
 	}
@@ -73,15 +72,15 @@ func TestClearClientConf(t *testing.T) {
 
 func TestClearServerConf(t *testing.T) {
 	setupTestPaths(t)
-	if err:= SaveServerConf(&ServerConf{}); err != nil {
+	if err := SaveServerConf(&ServerConf{}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err:= ClearServerConf(); err != nil {
+	if err := ClearServerConf(); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err:=os.Stat(serverConfPath)
+	_, err := os.Stat(serverConfPath)
 	if err == nil {
 		t.Fatalf("Expected file to be removed, got %v", err)
 	}
