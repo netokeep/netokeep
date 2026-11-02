@@ -17,7 +17,7 @@ func LoadClientConf() (data *ClientProxy, err error) {
 		if os.IsNotExist(err) {
 			log.Println("Client configuration file not found. Overwriting with default.")
 			if err := SaveClientConf(defaultClientConf); err != nil {
-				log.Printf("Failed to save defaulg client configuration: %v\n", err)
+				log.Printf("Failed to save default client configuration: %v\n", err)
 				return nil, err
 			}
 			return &defaultClientConf.Proxy, nil

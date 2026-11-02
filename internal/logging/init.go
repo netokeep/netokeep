@@ -9,23 +9,15 @@ import (
 	"github.com/natefinch/lumberjack"
 )
 
-func logDir() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "state", "netokeep", "logs")
-}
-
-/*
-LogPath returns the full path to the log file for a given name.
-*/
-func LogPath(name string) string {
-	return filepath.Join(logDir(), name+".log")
-}
+var homeDir, _ = os.UserHomeDir()
+var logDir = filepath.Join(homeDir, ".local", "state", "netokeep", "logs")
 
 func InitLogging(name string) {
-	if err := os.MkdirAll(logDir(), 0755); err != nil {
-		panic("Failed to create log directory: " + err.Error())
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Fatalf("Failed to create log directory: %v", err)
 	}
-	logPath := LogPath(name)
+
+	logPath := filepath.Join(logDir, name+".log")
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   logPath,
 		MaxSize:    1,    // Size of one log file (MB)
@@ -38,7 +30,7 @@ func InitLogging(name string) {
 }
 
 func ClearLogs(name string) error {
-	pattern := filepath.Join(logDir(), name+"*.log*")
+	pattern := filepath.Join(logDir, name+"*.log*")
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return err

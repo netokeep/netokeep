@@ -27,11 +27,11 @@ func createStartCmd() *cobra.Command {
 
 			data, err := states.CheckState(name)
 			if err != nil {
-				fmt.Printf("Error checking state for %s: %v\n", name, err)
+				fmt.Printf("\033[31mError checking state for %s: %v\033[0m\n", name, err)
 				return
 			}
-			if data.State == "alive" {
-				fmt.Printf("NetoKeep client '%s' is already running (PID: %d, SSH Port: %d).\n", name, data.Pid, data.SshPort)
+			if data.State == states.StateRunning {
+				fmt.Printf("\033[32mNetoKeep client '%s' is already running (PID: %d, SSH Port: %d).\033[0m\n", name, data.Pid, data.SshPort)
 				return
 			}
 
@@ -55,7 +55,7 @@ func createStartCmd() *cobra.Command {
 			utils.SetupDetachedProcess(newCmd)
 
 			if err := newCmd.Start(); err != nil {
-				fmt.Printf("Failed to start background process: %v\n", err)
+				fmt.Printf("\033[31mFailed to start background process: %v\033[0m\n", err)
 				return
 			}
 
@@ -70,13 +70,13 @@ func createStartCmd() *cobra.Command {
 				case <-cmd.Context().Done():
 					return
 				case <-timer.C:
-					fmt.Printf("Timeout waiting for NetoKeep client '%s' to start.\n", name)
+					fmt.Printf("\033[33mTimeout waiting for NetoKeep client '%s' to start.\033[0m\n", name)
 					return
 				case <-ticker.C:
 					// Check the state periodically
 					newData, err := states.CheckState(name)
 					if err != nil {
-						fmt.Printf("Error checking state for %s while waiting: %v\n", name, err)
+						fmt.Printf("\033[31mError checking state for %s while waiting: %v\033[0m\n", name, err)
 						return
 					}
 					if newData.Pid != newCmd.Process.Pid {
@@ -84,11 +84,11 @@ func createStartCmd() *cobra.Command {
 					}
 
 					switch newData.State {
-					case "alive":
-						fmt.Printf("NetoKeep client '%s' started successfully (PID: %d, SSH Port: %d).\n", name, newData.Pid, newData.SshPort)
+					case states.StateRunning:
+						fmt.Printf("\033[32mNetoKeep client '%s' started successfully (PID: %d, SSH Port: %d).\033[0m\n", name, newData.Pid, newData.SshPort)
 						return
-					case "dead":
-						fmt.Printf("NetoKeep client '%s' failed to start.\n", name)
+					case states.StateFailed:
+						fmt.Printf("\033[31mNetoKeep client '%s' failed to start.\033[0m\n", name)
 						return
 					default:
 						// Unknown state, continue checking

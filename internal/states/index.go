@@ -7,18 +7,38 @@ import (
 	"path/filepath"
 )
 
+type StateKind string
+
+const (
+	KindClient StateKind = "client"
+	KindServer StateKind = "server"
+)
+
+type State string
+
+const (
+	StateRunning State = "running"
+	StateFailed  State = "failed"
+	StateStopped State = "stopped"
+	StateUnknown State = "unknown"
+)
+
 type StateData struct {
-	State   string
-	Pid     int
-	SshPort uint16
+	State State `json:"state"`
+	Pid   int   `json:"pid"`
+
+	SshPort        uint16 `json:"ssh_port,omitempty"`
+	RemoteAddr     string `json:"remote_addr,omitempty"`
+	ForwardTraffic bool   `json:"forward_traffic,omitempty"`
+	UseProxy       bool   `json:"use_proxy,omitempty"`
 }
 
 var homeDir, _ = os.UserHomeDir()
-var defaultStateData = &StateData{State: "unknown"}
+var defaultStateData = &StateData{State: StateUnknown}
 
 func CheckState(name string) (*StateData, error) {
 	// read state file
-	statePath := filepath.Join(homeDir, ".local", "state", name+"-state.json")
+	statePath := filepath.Join(homeDir, ".local", "state", "netokeep", name+"-state.json")
 	contents, err := os.ReadFile(statePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -45,7 +65,7 @@ func CheckState(name string) (*StateData, error) {
 }
 
 func WriteState(name string, stateData *StateData) error {
-	statePath := filepath.Join(homeDir, ".local", "state", name+"-state.json")
+	statePath := filepath.Join(homeDir, ".local", "state", "netokeep", name+"-state.json")
 	tempPath := statePath + ".tmp"
 	jsonBytes, err := json.Marshal(stateData)
 	if err != nil {
