@@ -41,16 +41,16 @@ func createCoreCmd() *cobra.Command {
 			// Start the ssh server in a separate goroutine
 			sshReady := make(chan struct{})
 			eg.Go(func() error {
-				return services.StartSshForwardListener(egCtx, stop, sshReady, services.SshForwardConf{
+				return services.StartSSHForwardListener(egCtx, stop, sshReady, services.SSHForwardConf{
 					Manager: manager,
-					SshPort: sshPort,
+					SSHPort: sshPort,
 				})
 			})
 
 			// Start the client in a separate goroutine
 			clientReady := make(chan struct{})
 			eg.Go(func() error {
-				return services.StartClient(egCtx, stop, clientReady, services.ClientConf{
+				return services.StartTrafficClient(egCtx, stop, clientReady, services.TrafficClientConf{
 					Manager:       manager,
 					RemoteAddr:    remoteAddr,
 					ForwardTraffic: forwardTraffic,
@@ -96,7 +96,7 @@ func createCoreCmd() *cobra.Command {
 						State:          states.StateRunning,
 						Pid:            os.Getpid(),
 						RemoteAddr:     remoteAddr,
-						SshPort:        sshPort,
+						SSHPort:        sshPort,
 						ForwardTraffic: forwardTraffic,
 						UseProxy:       useProxy,
 					}); err != nil {

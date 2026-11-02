@@ -27,7 +27,7 @@ type StateData struct {
 	State State `json:"state"`
 	Pid   int   `json:"pid"`
 
-	SshPort        uint16 `json:"ssh_port,omitempty"`
+	SSHPort        uint16 `json:"ssh_port,omitempty"`
 	RemoteAddr     string `json:"remote_addr,omitempty"`
 	ForwardTraffic bool   `json:"forward_traffic,omitempty"`
 	UseProxy       bool   `json:"use_proxy,omitempty"`

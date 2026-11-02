@@ -31,7 +31,7 @@ func createStartCmd() *cobra.Command {
 				return
 			}
 			if data.State == states.StateRunning {
-				fmt.Printf("\033[32mNetoKeep client '%s' is already running (PID: %d, SSH Port: %d).\033[0m\n", name, data.Pid, data.SshPort)
+				fmt.Printf("\033[32mNetoKeep client '%s' is already running (PID: %d, SSH Port: %d).\033[0m\n", name, data.Pid, data.SSHPort)
 				return
 			}
 
@@ -85,7 +85,7 @@ func createStartCmd() *cobra.Command {
 
 					switch newData.State {
 					case states.StateRunning:
-						fmt.Printf("\033[32mNetoKeep client '%s' started successfully (PID: %d, SSH Port: %d).\033[0m\n", name, newData.Pid, newData.SshPort)
+						fmt.Printf("\033[32mNetoKeep client '%s' started successfully (PID: %d, SSH Port: %d).\033[0m\n", name, newData.Pid, newData.SSHPort)
 						return
 					case states.StateFailed:
 						fmt.Printf("\033[31mNetoKeep client '%s' failed to start.\033[0m\n", name)
