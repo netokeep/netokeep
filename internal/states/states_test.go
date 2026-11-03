@@ -34,7 +34,7 @@ func TestWriteState(t *testing.T) {
 	setupTestPaths(t)
 
 	name := "test"
-	stateData := &StateData{State: "active", Pid: 123, SshPort: 2222}
+	stateData := &StateData{State: "active", Pid: 123, SSHPort: 2222}
 	err := WriteState(name, stateData)
 	if err != nil {
 		t.Fatalf("WriteState failed: %v", err)
@@ -44,7 +44,7 @@ func TestWriteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CheckState failed: %v", err)
 	}
-	if retrievedStateData.State != stateData.State || retrievedStateData.Pid != stateData.Pid || retrievedStateData.SshPort != stateData.SshPort {
+	if retrievedStateData.State != stateData.State || retrievedStateData.Pid != stateData.Pid || retrievedStateData.SSHPort != stateData.SSHPort {
 		t.Errorf("Expected %+v, got %+v", stateData, retrievedStateData)
 	}
 }
