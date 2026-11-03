@@ -1,13 +1,10 @@
 package utils
 
-
 import (
 	"io"
 	"net"
 	"sync"
 )
-
-
 
 func Relay(left net.Conn, right net.Conn) {
 	var wg sync.WaitGroup

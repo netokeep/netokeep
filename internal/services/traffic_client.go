@@ -8,8 +8,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"netokeep/internal/protocol"
 	"netokeep/internal/sessions"
 	"netokeep/internal/storage"
+	"netokeep/internal/transport"
 	"netokeep/internal/utils"
 	"strconv"
 	"strings"
@@ -22,10 +24,10 @@ import (
 )
 
 type TrafficClientConf struct {
-	Manager       *sessions.SessionManager
-	RemoteAddr    string
+	Manager        *sessions.SessionManager
+	RemoteAddr     string
 	ForwardTraffic bool
-	UseProxy      bool
+	UseProxy       bool
 }
 
 // rand.Text generates a random string for the client ID with length 26.
@@ -54,7 +56,7 @@ func StartTrafficClient(
 	yamuxConf := yamux.DefaultConfig()
 	yamuxConf.EnableKeepAlive = false
 	yamuxConf.ConnectionWriteTimeout = 10 * time.Second
-	yamuxConf.MaxStreamWindowSize = 2 * 1024 * 1024  // 2MB
+	yamuxConf.MaxStreamWindowSize = 2 * 1024 * 1024 // 2MB
 
 	// Load client matcher for selecting the traffic to be proxied
 	proxyDialer, err := func() (func(ctx context.Context, network, target string) (net.Conn, error), error) {
@@ -124,14 +126,14 @@ func StartTrafficClient(
 		wg.Go(func() {
 			defer conn.Close()
 			// Handle the connection here, e.g., proxy traffic or perform other tasks
-			property, err := protocol.ResolveProperty(conn)
+			property, err := protocol.ResolveConnProperty(conn)
 			if err != nil {
 				log.Printf("Failed to resolve connection property: %v", err)
 				return
 			}
 			switch property.Pattern {
 			case protocol.ProxyPattern:
-				target := net.JoinHostPort(property.Host, strconv.Itoa(property.Port))
+				target := net.JoinHostPort(property.Host, strconv.Itoa(int(property.Port)))
 				log.Printf("Connection request to: %s", target)
 				remoteConn, err := proxyDialer(ctx, "tcp", target)
 				if err != nil {

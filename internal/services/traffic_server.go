@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
-func StartTrafficServer(ctx context.Context, _ context.CancelFunc, manager *sessions.SessionManager, portOut uint16, portSsh uint16) error {
+func StartTrafficServer(ctx context.Context, _ context.CancelFunc, manager *sessions.SessionManager, portOut uint16, sshPort uint16) error {
 	var wg sync.WaitGroup
 	// Setup yamux config
 	cfg := yamux.DefaultConfig()
@@ -70,8 +70,8 @@ func StartTrafficServer(ctx context.Context, _ context.CancelFunc, manager *sess
 					}
 					switch pattern {
 					// The client will just actively send ssh request using channel
-					case protocol.SshPattern:
-						remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", portSsh))
+					case protocol.SSHPattern:
+						remoteConn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sshPort))
 						if err != nil {
 							log.Printf("[traffic] Failed to connect to local ssh server: %v", err)
 							return

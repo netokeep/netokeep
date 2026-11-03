@@ -51,10 +51,10 @@ func createCoreCmd() *cobra.Command {
 			clientReady := make(chan struct{})
 			eg.Go(func() error {
 				return services.StartTrafficClient(egCtx, stop, clientReady, services.TrafficClientConf{
-					Manager:       manager,
-					RemoteAddr:    remoteAddr,
+					Manager:        manager,
+					RemoteAddr:     remoteAddr,
 					ForwardTraffic: forwardTraffic,
-					UseProxy:      useProxy,
+					UseProxy:       useProxy,
 				})
 			})
 

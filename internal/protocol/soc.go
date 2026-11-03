@@ -9,14 +9,6 @@ import (
 
 type SocPattern uint8
 
-const (
-	UnknownPattern SocPattern = 0x00
-	// Proxy pattern
-	ProPattern SocPattern = 0x01
-	// SSH request pattern
-	SshPattern SocPattern = 0x02
-)
-
 type SocConn struct {
 	net.Conn
 	Host string
