@@ -105,12 +105,11 @@ func StartTrafficClient(
 		rc.Close()
 		return fmt.Errorf("failed to create yamux session: %w", err)
 	}
+	defer session.Close()
+	defer context.AfterFunc(ctx, func() { session.Close() })()
+
 	conf.Manager.AddSession(clientId, session, rc)
 	defer conf.Manager.RemoveSession(clientId)
-	// core may have already called manager.Close before the session was added
-	if ctx.Err() != nil {
-		return nil
-	}
 
 	close(ready)
 	log.Printf("Traffic client started for session ID: %s", clientId)
