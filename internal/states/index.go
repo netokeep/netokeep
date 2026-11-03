@@ -3,6 +3,7 @@ package states
 import (
 	"encoding/json"
 	"log"
+	"netokeep/internal/utils"
 	"os"
 	"path/filepath"
 )
@@ -31,12 +32,15 @@ type StateData struct {
 	RemoteAddr     string `json:"remote_addr,omitempty"`
 	ForwardTraffic bool   `json:"forward_traffic,omitempty"`
 	UseProxy       bool   `json:"use_proxy,omitempty"`
+
+	Inport  uint16 `json:"in_port,omitempty"`
+	Outport uint16 `json:"out_port,omitempty"`
 }
 
 var homeDir, _ = os.UserHomeDir()
 var defaultStateData = &StateData{State: StateUnknown}
 
-func CheckState(name string) (*StateData, error) {
+func LoadState(name string) (*StateData, error) {
 	// read state file
 	statePath := filepath.Join(homeDir, ".local", "state", "netokeep", name+"-state.json")
 	contents, err := os.ReadFile(statePath)
@@ -79,4 +83,25 @@ func WriteState(name string, stateData *StateData) error {
 		return err
 	}
 	return os.Rename(tempPath, statePath)
+}
+
+func ClearState(name string) error {
+	statePath := filepath.Join(homeDir, ".local", "state", "netokeep", name+"-state.json")
+	if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+func CheckRunning(state *StateData) bool {
+	if state.State != StateRunning {
+		return false
+	}
+
+	if utils.IsProcessRunning(state.Pid) {
+		return true
+	}
+
+	state.State = StateUnknown
+	return false
 }

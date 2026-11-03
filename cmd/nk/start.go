@@ -25,12 +25,12 @@ func createStartCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			name := args[0]
 
-			data, err := states.CheckState(name)
+			data, err := states.LoadState(name)
 			if err != nil {
 				fmt.Printf("\033[31mError checking state for %s: %v\033[0m\n", name, err)
 				return
 			}
-			if data.State == states.StateRunning {
+			if states.CheckRunning(data) {
 				fmt.Printf("\033[32mNetoKeep client '%s' is already running (PID: %d, SSH Port: %d).\033[0m\n", name, data.Pid, data.SSHPort)
 				return
 			}
@@ -74,7 +74,7 @@ func createStartCmd() *cobra.Command {
 					return
 				case <-ticker.C:
 					// Check the state periodically
-					newData, err := states.CheckState(name)
+					newData, err := states.LoadState(name)
 					if err != nil {
 						fmt.Printf("\033[31mError checking state for %s while waiting: %v\033[0m\n", name, err)
 						return

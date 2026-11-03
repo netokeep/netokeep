@@ -87,9 +87,15 @@ func SaveServerConf(conf *ServerConf) error {
 }
 
 func ClearClientConf() error {
-	return os.Remove(clientConfPath)
+	if err := os.Remove(clientConfPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 func ClearServerConf() error {
-	return os.Remove(serverConfPath)
+	if err := os.Remove(serverConfPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
