@@ -25,8 +25,8 @@ func TestLoadState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
-	if stateData.State != "unknown" {
-		t.Errorf("Expected state 'unknown', got '%s'", stateData.State)
+	if stateData.State != StateUnknown {
+		t.Errorf("Expected state '%s', got '%s'", StateUnknown, stateData.State)
 	}
 }
 
@@ -34,7 +34,7 @@ func TestWriteState(t *testing.T) {
 	setupTestPaths(t)
 
 	name := "test"
-	stateData := &StateData{State: "active", Pid: 123, SSHPort: 2222, Inport: 7890, Outport: 7222}
+	stateData := &StateData{State: StateRunning, Pid: 123, SSHPort: 2222, InPort: 7890, OutPort: 7222}
 	err := WriteState(name, stateData)
 	if err != nil {
 		t.Fatalf("WriteState failed: %v", err)
@@ -47,8 +47,8 @@ func TestWriteState(t *testing.T) {
 	if retrievedStateData.State != stateData.State ||
 		retrievedStateData.Pid != stateData.Pid ||
 		retrievedStateData.SSHPort != stateData.SSHPort ||
-		retrievedStateData.Inport != stateData.Inport ||
-		retrievedStateData.Outport != stateData.Outport {
+		retrievedStateData.InPort != stateData.InPort ||
+		retrievedStateData.OutPort != stateData.OutPort {
 		t.Errorf("Expected %+v, got %+v", stateData, retrievedStateData)
 	}
 }

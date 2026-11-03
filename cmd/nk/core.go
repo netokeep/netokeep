@@ -81,12 +81,16 @@ func createCoreCmd() *cobra.Command {
 					}
 
 					if err := states.WriteState(name, &states.StateData{
-						State: finalState,
-						Pid:   os.Getpid(),
+						State:          finalState,
+						Pid:            os.Getpid(),
+						RemoteAddr:     remoteAddr,
+						SSHPort:        sshPort,
+						ForwardTraffic: forwardTraffic,
+						UseProxy:       useProxy,
 					}); err != nil {
-						log.Printf("Failed to write stopped state: %v\n", err)
+						log.Printf("Failed to write final state: %v\n", err)
 					}
-					log.Printf("NetoKeep client stopped.")
+					log.Printf("NetoKeep client stopped.\n")
 					return
 				}
 

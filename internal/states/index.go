@@ -33,8 +33,8 @@ type StateData struct {
 	ForwardTraffic bool   `json:"forward_traffic,omitempty"`
 	UseProxy       bool   `json:"use_proxy,omitempty"`
 
-	Inport  uint16 `json:"in_port,omitempty"`
-	Outport uint16 `json:"out_port,omitempty"`
+	InPort  uint16 `json:"in_port,omitempty"`
+	OutPort uint16 `json:"out_port,omitempty"`
 }
 
 var homeDir, _ = os.UserHomeDir()

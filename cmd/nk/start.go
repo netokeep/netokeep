@@ -59,7 +59,7 @@ func createStartCmd() *cobra.Command {
 				return
 			}
 
-			// Check the state after the state changes.
+			// Check the state after starting the background process
 			ticker := time.NewTicker(500 * time.Millisecond)
 			defer ticker.Stop()
 			timer := time.NewTimer(10 * time.Second)

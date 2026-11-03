@@ -6,6 +6,7 @@ import (
 	"netokeep/internal/logging"
 	"netokeep/internal/services"
 	"netokeep/internal/sessions"
+	"netokeep/internal/states"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,13 +16,14 @@ import (
 )
 
 func createCoreCmd() *cobra.Command {
-	var portIn uint16
-	var portOut uint16
+	var inPort uint16
+	var outPort uint16
 
 	var coreCmd = &cobra.Command{
 		Use:    "core",
 		Hidden: true,
-		Short:  "Start the netokeep server in the foreground.",
+		Short:  "Run the server in the foreground.",
+		Long:   "Run the server in the foreground, console logs in the terminal.",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
@@ -29,38 +31,82 @@ func createCoreCmd() *cobra.Command {
 			eg, egCtx := errgroup.WithContext(ctx)
 			logging.InitLogging("nks")
 
-			// Start sshd service
-			portSsh, stopSshd, err := services.StartSshdService()
-			if err != nil {
-				log.Fatalf("[nks] Failed to start sshd service: %v", err)
-			}
+			manager := &sessions.NewSessionManager()
 
-			// Create a session manager to handle all user sessions
-			manager := sessions.NewSessionManager()
+			// Start the ssh server
+			sshReady := make(chan struct{})
+			sshPort := services.StartSSHServer(egCtx, stop, sshReady)
 
 			// Handle outgoing traffic
-			eg.Go(func() error {
-				return services.StartProxyListener(egCtx, stop, manager, portIn)
-			})
+			proxyReady := make(chan struct{})
+			if inPort == 0 {
+				close(proxyReady)
+			} else {
+				eg.Go(func() error {
+					return services.StartProxyListener(egCtx, stop, proxyReady, services.ProxyListenerConfig{
+						Manager: manager,
+						Port:    inPort,
+					})
+				})
+			}
 
 			// Handle incoming traffic
+			serverReady := make(chan struct{})
 			eg.Go(func() error {
-				return services.StartTrafficServer(egCtx, stop, manager, portOut, portSsh)
+				return services.StartTrafficServer(egCtx, stop, serverReady, services.TrafficServerConfig{
+					Manager: manager,
+					Port:    outPort,
+					SSHPort: sshPort,
+				})
 			})
 
-			<-egCtx.Done()
-			stopSshd()
-			manager.Close()
+			remaining := 3
+			for remaining > 0 {
+				select {
+				case <-sshReady:
+					remaining--
+				case <-proxyReady:
+					remaining--
+				case <-serverReady:
+					remaining--
+				case <-egCtx.Done():
+					manager.Close()
 
-			if err := eg.Wait(); err != nil {
-				log.Printf("[nks] Error in server execution: %v", err)
+					finalState := states.StateStopped
+					if err := eg.Wait(); err != nil {
+						log.Printf("Error in server execution: %v", err)
+						finalState = states.StateFailed
+					}
+
+					if err := states.WriteState("nks", &states.StateData{
+						State:   finalState,
+						Pid:     os.Getpid(),
+						InPort:  inPort,
+						OutPort: outPort,
+					}); err != nil {
+						log.Printf("Failed to write final state: %v", err)
+					}
+					log.Printf("NetoKeep server stopped.\n")
+					return
+				}
+
+				if remaining == 0 {
+					// All components are ready
+					if err := states.WriteState("nks", &states.StateData{
+						State:   states.StateRunning,
+						Pid:     os.Getpid(),
+						InPort:  inPort,
+						OutPort: outPort,
+					}); err != nil {
+						log.Printf("Failed to write running state: %v", err)
+					}
+				}
 			}
-			log.Printf("[nks] NetoKeep server stopped.")
 		},
 	}
 
-	coreCmd.Flags().Uint16VarP(&portIn, "in-port", "i", 7890, "port to proxy incoming traffic (HTTP protocol).")
-	coreCmd.Flags().Uint16VarP(&portOut, "out-port", "o", 7222, "port to forward outgoing traffic.")
+	coreCmd.Flags().Uint16VarP(&inPort, "in-port", "i", 0, "port to proxy incoming traffic (HTTP protocol).")
+	coreCmd.Flags().Uint16VarP(&outPort, "out-port", "o", 7222, "port to forward outgoing traffic.")
 
 	return coreCmd
 }

@@ -2,70 +2,103 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"netokeep/internal/local"
-	"netokeep/pkg/utils"
+	"netokeep/internal/states"
+	"netokeep/internal/utils"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 func createStartCmd() *cobra.Command {
-	var portIn uint16
-	var portOut uint16
+	var inPort uint16
+	var outPort uint16
 
 	var startCmd = &cobra.Command{
 		Use:   "start",
-		Short: "Start the netokeep server.",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			utils.EnsureRoot()
-		},
+		Short: "Start the NetoKeep server.",
+		Long:  "Start the NetoKeep server, listening for incoming and outgoing traffic on specified ports.",
 		Run: func(cmd *cobra.Command, args []string) {
-			// Check if the server is already running
-			pid, alive := local.IsAlive("nks")
-			if alive {
-				portIn, errIn := local.ReadPort("nks-in")
-				portOut, errOut := local.ReadPort("nks-out")
-				if errIn == nil && errOut == nil {
-					fmt.Printf("NetoKeep server is already running (PID: %d, In Port: %d, Out Port: %d).\n", pid, portIn, portOut)
-				} else {
-					fmt.Printf("NetoKeep server is already running (PID: %d).\n", pid)
-				}
+			if os.Geteuid() != 0 {
+				fmt.Printf("\033[31mThis command must be run as root.\033[0m\n")
 				return
 			}
-			// Start the server
-			executable, _ := os.Executable()
-			argArr := []string{
-				"core",
-				"-i", fmt.Sprintf("%d", portIn),
-				"-o", fmt.Sprintf("%d", portOut),
+
+			data, err := states.LoadState("nks")
+			if err != nil {
+				fmt.Printf("\033[31mFailed to load current server state: %v\033[0m\n", err)
+				return
 			}
-			newCmd := exec.Command(executable, argArr...)
+			if states.CheckRunning(data) {
+				if data.Inport == 0 {
+					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, Out Port: %d).\033[0m\n", data.Pid, data.Outport)
+					return
+				} else {
+					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", data.Pid, data.Inport, data.Outport)
+					return
+				}
+			}
+
+			// Create core command args
+			executable, _ := os.Executable()
+			argv := []string{
+				"core",
+				"-i", fmt.Sprintf("%d", inPort),
+				"-o", fmt.Sprintf("%d", outPort),
+			}
+
+			// Execute the core command
+			newCmd := exec.Command(executable, argv...)
 			utils.SetupDetachedProcess(newCmd)
-			newCmd.Stdout = nil
-			newCmd.Stderr = nil
-			newCmd.Stdin = nil
 
 			if err := newCmd.Start(); err != nil {
-				log.Fatalf("Failed to start background process: %v", err)
+				fmt.Printf("\033[31mFailed to start background process: %v\033[0m\n", err)
+				return
 			}
 
-			if err := local.WritePID("nks", newCmd.Process.Pid); err != nil {
-				log.Printf("Failed to write PID file: %v", err)
+			// Check the state after starting the background process
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			timer := time.NewTimer(10 * time.Second)
+			defer timer.Stop()
+
+			for {
+				select {
+				case <-cmd.Context().Done():
+					return
+				case <-timer.C:
+					fmt.Printf("\033[33mTimeout waiting for NetoKeep server to start.\033[0m\n")
+					return
+				case <-ticker.C:
+					// Check the state periodically
+					newData, err := states.LoadState("nks")
+					if err != nil {
+						fmt.Printf("\033[31mError checking state while waiting: %v\033[0m\n", err)
+						return
+					}
+					if newData.Pid != newCmd.Process.Pid {
+						continue
+					}
+
+					switch newData.State {
+					case states.StateRunning:
+						fmt.Printf("\033[32mNetoKeep server started successfully (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", newData.Pid, newData.Inport, newData.Outport)
+						return
+					case states.StateFailed:
+						fmt.Printf("\033[31mNetoKeep server failed to start.\033[0m\n")
+						return
+					default:
+						// Unknown state, continue checking
+						continue
+					}
+				}
 			}
-			if err := local.WritePort("nks-in", portIn); err != nil {
-				log.Printf("Failed to write Port file: %v", err)
-			}
-			if err := local.WritePort("nks-out", portOut); err != nil {
-				log.Printf("Failed to write Port file: %v", err)
-			}
-			fmt.Printf("NetoKeep server started in background (PID: %d)\n", newCmd.Process.Pid)
 		},
 	}
 
-	startCmd.Flags().Uint16VarP(&portIn, "in-port", "i", 7890, "port to proxy incoming traffic (HTTP protocol).")
-	startCmd.Flags().Uint16VarP(&portOut, "out-port", "o", 7222, "port to forward outgoing traffic.")
+	startCmd.Flags().Uint16VarP(&inPort, "in-port", "i", 0, "port to proxy incoming traffic (HTTP protocol).")
+	startCmd.Flags().Uint16VarP(&outPort, "out-port", "o", 7222, "port to forward outgoing traffic.")
 
 	return startCmd
 }
