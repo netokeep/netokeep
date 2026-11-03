@@ -31,11 +31,11 @@ func createStartCmd() *cobra.Command {
 				return
 			}
 			if states.CheckRunning(data) {
-				if data.Inport == 0 {
-					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, Out Port: %d).\033[0m\n", data.Pid, data.Outport)
+				if data.InPort == 0 {
+					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, Out Port: %d).\033[0m\n", data.Pid, data.OutPort)
 					return
 				} else {
-					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", data.Pid, data.Inport, data.Outport)
+					fmt.Printf("\033[32mNetoKeep server is already running (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", data.Pid, data.InPort, data.OutPort)
 					return
 				}
 			}
@@ -83,7 +83,7 @@ func createStartCmd() *cobra.Command {
 
 					switch newData.State {
 					case states.StateRunning:
-						fmt.Printf("\033[32mNetoKeep server started successfully (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", newData.Pid, newData.Inport, newData.Outport)
+						fmt.Printf("\033[32mNetoKeep server started successfully (PID: %d, In Port: %d, Out Port: %d).\033[0m\n", newData.Pid, newData.InPort, newData.OutPort)
 						return
 					case states.StateFailed:
 						fmt.Printf("\033[31mNetoKeep server failed to start.\033[0m\n")
