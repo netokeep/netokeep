@@ -31,11 +31,18 @@ func createCoreCmd() *cobra.Command {
 			eg, egCtx := errgroup.WithContext(ctx)
 			logging.InitLogging("nks")
 
-			manager := &sessions.NewSessionManager()
+			manager := &sessions.SessionManager{}
 
 			// Start the ssh server
 			sshReady := make(chan struct{})
-			sshPort := services.StartSSHServer(egCtx, stop, sshReady)
+			sshPort, err := utils.FindFreePort()
+			if err != nil {
+				log.Printf("Failed to find free port for SSH service: %v", err)
+				return
+			}
+			eg.Go(func() error {
+				return services.StartSSHService(egCtx, stop, sshReady, sshPort)
+			})
 
 			// Handle outgoing traffic
 			proxyReady := make(chan struct{})
