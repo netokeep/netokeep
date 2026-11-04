@@ -8,20 +8,6 @@ import (
 	"net"
 )
 
-type PrependConn struct {
-	net.Conn
-	Buffer []byte
-}
-
-func (pc *PrependConn) Read(p []byte) (int, error) {
-	if len(pc.Buffer) > 0 {
-		n := copy(p, pc.Buffer)
-		pc.Buffer = pc.Buffer[n:]
-		return n, nil
-	}
-	return pc.Conn.Read(p)
-}
-
 type Pattern uint8
 
 const (
@@ -58,7 +44,7 @@ func ResolveConnProperty(conn net.Conn) (ConnProperty, error) {
 	}, nil
 }
 
-func InsertConnProperty(conn net.Conn, property ConnProperty) (net.Conn, error) {
+func EncodeConnProperty(property ConnProperty) ([]byte, error) {
 	if len(property.Host) > 255 {
 		return nil, fmt.Errorf("host too long: %s", property.Host)
 	}
@@ -68,5 +54,5 @@ func InsertConnProperty(conn net.Conn, property ConnProperty) (net.Conn, error) 
 	headerBuf = append(headerBuf, byte(len(property.Host)))
 	headerBuf = append(headerBuf, []byte(property.Host)...)
 
-	return &PrependConn{Conn: conn, Buffer: headerBuf}, nil
+	return headerBuf, nil
 }

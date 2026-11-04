@@ -1,119 +1,180 @@
 package services
 
 import (
-	"bufio"
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"netokeep/internal/protocol"
-	"netokeep/internal/rules"
 	"netokeep/internal/sessions"
+	"netokeep/internal/storage"
+	"netokeep/internal/utils"
 	"strconv"
-	"sync"
+	"strings"
+	"time"
+
+	xproxy "golang.org/x/net/proxy"
 )
 
-/*
-StartProxyListener create one http proxy server to receive local traffic from `listenPort`
+type ProxyListenerConfig struct {
+	Manager *sessions.SessionManager
+	Port    uint16
+}
 
-StartProxy dose not defer the connection, the caller should handle the connection lifecycle in the handler function.
-*/
-func StartProxyListener(ctx context.Context, _ context.CancelFunc, manager *sessions.SessionManager, listenPort uint16) error {
-	var wg sync.WaitGroup
+func StartProxyListener(ctx context.Context, stop context.CancelFunc, ready chan struct{}, conf ProxyListenerConfig) error {
+	// Stop the whole program once the proxy listener exits.
+	defer stop()
+
+	// Create the proxy handler before setting up the listener.
+	dial, err := buildRuleDialer(conf.Manager)
+	if err != nil {
+		return fmt.Errorf("error in building rule dialer: %v", err)
+	}
+	handler := createProxyHandler(dial)
+
+	// Create TCP listener for the proxy server
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(conf.Port)))
 	lc := net.ListenConfig{}
-
-	// Load server matcher for validating incoming connection requests
-	matcher, err := rules.LoadServerMatcher()
+	ln, err := lc.Listen(ctx, "tcp", addr)
 	if err != nil {
-		return fmt.Errorf("error in loading server matcher: %v", err)
+		return fmt.Errorf("error in listening %d: %v", conf.Port, err)
 	}
 
-	// Use local adress to avoid external connections
-	la := fmt.Sprintf("127.0.0.1:%d", listenPort)
-	ln, err := lc.Listen(ctx, "tcp", la)
-	if err != nil {
-		return fmt.Errorf("error in listening %d: %v", listenPort, err)
+	// Construct the HTTP server
+	srv := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		BaseContext:       func(_ net.Listener) context.Context { return ctx },
 	}
-	log.Printf("🌐 HTTP proxy listener started at port %d", listenPort)
+	serveErr := make(chan error, 1)
+	go func() { serveErr <- srv.Serve(ln) }()
 
-	go func() {
-		for {
-			conn, err := ln.Accept()
+	close(ready)
+	log.Printf("🌐 HTTP proxy listener started at port %d", conf.Port)
+
+	select {
+	case err := <-serveErr:
+		return fmt.Errorf("proxy server error: %v", err)
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		srv.Shutdown(shutdownCtx)
+		return nil
+	}
+}
+
+var errHostDenied = errors.New("host denied by rules")
+
+// rejectDialer refuses every connection; used for denied hosts.
+type rejectDialer struct{}
+
+func (rejectDialer) Dial(_, addr string) (net.Conn, error) {
+	return nil, fmt.Errorf("%w: %s", errHostDenied, addr)
+}
+
+// tunnelDialer opens a yamux stream to a client and sends the target as a ConnProperty header.
+type tunnelDialer struct{ manager *sessions.SessionManager }
+
+func (d tunnelDialer) Dial(_, addr string) (net.Conn, error) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, fmt.Errorf("invalid port %q: %w", portStr, err)
+	}
+	return d.manager.OpenStream(protocol.ConnProperty{
+		Pattern: protocol.ProxyPattern,
+		Host:    host,
+		Port:    uint16(port),
+	}, true)
+}
+
+// buildRuleDialer applies deny → allow → default, matching hosts with xproxy rules.
+func buildRuleDialer(manager *sessions.SessionManager) (xproxy.ContextDialer, error) {
+	rules, err := storage.LoadServerConf()
+	if err != nil {
+		return nil, fmt.Errorf("error in loading server configuration: %w", err)
+	}
+
+	tunnel := tunnelDialer{manager: manager}
+
+	// Hosts matching no list fall back to the default policy
+	var fallback xproxy.Dialer = rejectDialer{}
+	if rules.Default != "deny" {
+		fallback = tunnel
+	}
+
+	// AllowList → tunnel, otherwise → fallback
+	allow := xproxy.NewPerHost(fallback, tunnel)
+	allow.AddFromString(strings.Join(rules.AllowList, ","))
+
+	// DenyList → reject, otherwise → allow layer
+	deny := xproxy.NewPerHost(allow, rejectDialer{})
+	deny.AddFromString(strings.Join(rules.DenyList, ","))
+	return deny, nil
+}
+
+func createProxyHandler(dialer xproxy.ContextDialer) http.Handler {
+	rp := &httputil.ReverseProxy{
+		// Forward-proxy requests already carry an absolute URL and Host; nothing to rewrite.
+		Rewrite:   func(*httputil.ProxyRequest) {},
+		Transport: &http.Transport{DialContext: dialer.DialContext, IdleConnTimeout: 90 * time.Second},
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Printf("Error: %s %s:%v", r.Method, r.URL.Host, err)
+			if !errors.Is(err, errHostDenied) {
+				w.WriteHeader(http.StatusBadGateway)
+			} else {
+				w.WriteHeader(http.StatusForbidden)
+			}
+		},
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodConnect:
+			remote, err := dialer.DialContext(r.Context(), "tcp", r.Host)
 			if err != nil {
-				log.Printf("[listener] Proxy listener closed.")
+				log.Printf("error connecting to %s: %v", r.Host, err)
+				if !errors.Is(err, errHostDenied) {
+					http.Error(w, err.Error(), http.StatusBadGateway)
+				} else {
+					http.Error(w, err.Error(), http.StatusForbidden)
+				}
 				return
 			}
-			wg.Go(func() {
-				// Handle the handshake of HTTP and return the conn with host and port
-				request, err := http.ReadRequest(bufio.NewReader(conn))
-				if err != nil {
-					log.Printf("[listener] Error in reading the request header: %v", err)
-					conn.Close()
+			defer remote.Close()
+
+			conn, buf, err := http.NewResponseController(w).Hijack()
+			if err != nil {
+				log.Printf("error hijacking connection: %v", err)
+				return
+			}
+			defer conn.Close()
+			// Close the hijacked conn on server shutdown; http.Server does not track it
+			defer context.AfterFunc(r.Context(), func() { conn.Close() })()
+
+			if _, err := conn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n")); err != nil {
+				log.Printf("error writing to hijacked connection: %v", err)
+				return
+			}
+			// Bytes the client sent right after CONNECT may already sit in the server's buffer
+			if n := buf.Reader.Buffered(); n > 0 {
+				pending, _ := buf.Reader.Peek(n)
+				if _, err := remote.Write(pending); err != nil {
 					return
 				}
-				host, portStr, err := net.SplitHostPort(request.Host)
-				if err != nil {
-					host = request.Host
-					if request.Method == http.MethodConnect {
-						portStr = "443"
-					} else {
-						portStr = "80"
-					}
-				}
-
-				// match the request host with server rules. If not matched, close the connection directly.
-				if !matcher.Match(host) {
-					log.Printf("[listener] Unmatched host: %s, closing.", host)
-					conn.Close()
-					return
-				}
-				log.Printf("[listener] Connection request to: %s:%s", host, portStr)
-				p, _ := strconv.ParseUint(portStr, 10, 16)
-				port := uint16(p)
-
-				// Construct SocConn
-				socConn := &protocol.SocConn{
-					Conn: conn,
-					Host: host,
-					Port: port,
-				}
-
-				// Handle CONNECT (usually used for HTTPS traffic)
-				if request.Method == http.MethodConnect {
-					_, err = conn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
-					if err != nil {
-						log.Printf("[listener] Error in CONNECT request handshake: %v", err)
-						conn.Close()
-						return
-					}
-				} else {
-					request.RequestURI = ""
-					var buffer bytes.Buffer
-					request.Write(&buffer)
-
-					socConn.Conn = &protocol.PrependConn{
-						Conn:   conn,
-						Buffer: buffer.Bytes(),
-					}
-				}
-
-				// Add a simple header for the proxy traffic detection.
-				header := socConn.CreateSocHeader(protocol.ProPattern)
-				// Select one accessible session to forward outgoing traffic
-				// The control of conn is handed to Traffic2Session if no error is returned.
-				if err := manager.Traffic2Session(socConn, header); err != nil {
-					log.Printf("[listener] Failed to forward traffic to session: %v", err)
-					conn.Close()
-					return
-				}
-			})
+			}
+			utils.Relay(conn, remote)
+		case r.URL.IsAbs():
+			rp.ServeHTTP(w, r)
+		default:
+			// A request addressed to the proxy itself, not through it
+			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
-	}()
-
-	<-ctx.Done()
-	ln.Close()
-	wg.Wait()
-	return nil
+	})
 }

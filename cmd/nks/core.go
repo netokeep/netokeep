@@ -7,6 +7,7 @@ import (
 	"netokeep/internal/services"
 	"netokeep/internal/sessions"
 	"netokeep/internal/states"
+	"netokeep/internal/utils"
 	"os"
 	"os/signal"
 	"syscall"
@@ -68,17 +69,18 @@ func createCoreCmd() *cobra.Command {
 			})
 
 			remaining := 3
-			for remaining > 0 {
+			for {
 				select {
 				case <-sshReady:
+					sshReady = nil
 					remaining--
 				case <-proxyReady:
+					proxyReady = nil
 					remaining--
 				case <-serverReady:
+					serverReady = nil
 					remaining--
 				case <-egCtx.Done():
-					manager.Close()
-
 					finalState := states.StateStopped
 					if err := eg.Wait(); err != nil {
 						log.Printf("Error in server execution: %v", err)

@@ -50,15 +50,8 @@ func StartSSHForwardListener(
 		wg.Go(func() {
 			log.Printf("Accepted SSH connection from %s", conn.RemoteAddr())
 
-			// Add a ssh signature header for identification.
-			conn, err = protocol.InsertConnProperty(conn, protocol.ConnProperty{Pattern: protocol.SSHPattern})
-			if err != nil {
-				log.Printf("Failed to insert SSH connection property: %v", err)
-				conn.Close()
-				return
-			}
 			// Select one accessible session to forward outgoing traffic
-			if err := conf.Manager.Traffic2Session(conn); err != nil {
+			if err := conf.Manager.Traffic2Session(conn, protocol.ConnProperty{Pattern: protocol.SSHPattern}); err != nil {
 				log.Printf("Failed to forward traffic to session: %v", err)
 				conn.Close()
 				return

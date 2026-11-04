@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"netokeep/internal/protocol"
 	"netokeep/internal/sessions"
-	"netokeep/pkg/transport"
-	"netokeep/pkg/utils"
+	"netokeep/internal/transport"
+	"netokeep/internal/utils"
 	"sync"
 	"time"
 

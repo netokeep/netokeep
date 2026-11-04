@@ -108,7 +108,11 @@ func StartTrafficClient(
 	defer session.Close()
 	defer context.AfterFunc(ctx, func() { session.Close() })()
 
-	conf.Manager.AddSession(clientId, session, rc)
+	conf.Manager.AddSession(clientId, &sessions.UserSession{
+		Session:        session,
+		Rc:             rc,
+		ForwardTraffic: false,
+	})
 	defer conf.Manager.RemoveSession(clientId)
 
 	close(ready)

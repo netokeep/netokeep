@@ -71,9 +71,6 @@ func createCoreCmd() *cobra.Command {
 					clientReady = nil
 					remaining--
 				case <-egCtx.Done():
-					// Context canceled, exit the loop
-					manager.Close()
-
 					finalState := states.StateStopped
 					if err := eg.Wait(); err != nil {
 						log.Printf("Error in client execution: %v", err)
