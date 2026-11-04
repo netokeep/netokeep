@@ -30,8 +30,7 @@ type TrafficClientConf struct {
 	UseProxy       bool
 }
 
-// rand.Text generates a random string for the client ID with length 26.
-var clientId = rand.Text()
+const maxRetries = 5
 
 func StartTrafficClient(
 	ctx context.Context,
@@ -48,10 +47,6 @@ func StartTrafficClient(
 	}
 	conf.RemoteAddr = "ws://" + strings.Split(conf.RemoteAddr, "://")[1]
 
-	// Initialize the wait group for managing concurrent operations
-	var wg sync.WaitGroup
-	defer wg.Wait()
-
 	// Setup yamux config()
 	yamuxConf := yamux.DefaultConfig()
 	yamuxConf.EnableKeepAlive = false
@@ -60,9 +55,9 @@ func StartTrafficClient(
 
 	// Load client matcher for selecting the traffic to be proxied
 	proxyDialer, err := func() (func(ctx context.Context, network, target string) (net.Conn, error), error) {
-		defaultDailer := &net.Dialer{Timeout: 3 * time.Second}
+		defaultDialer := &net.Dialer{Timeout: 3 * time.Second}
 		if !conf.UseProxy {
-			return defaultDailer.DialContext, nil
+			return defaultDialer.DialContext, nil
 		}
 		proxyConf, err := storage.LoadClientConf()
 		if err != nil {
@@ -72,11 +67,11 @@ func StartTrafficClient(
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse proxy URL: %w", err)
 		}
-		proxyDialer, err := xproxy.FromURL(proxyURL, defaultDailer)
+		proxyDialer, err := xproxy.FromURL(proxyURL, defaultDialer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create proxy dialer: %w", err)
 		}
-		dialer := xproxy.NewPerHost(defaultDailer, proxyDialer)
+		dialer := xproxy.NewPerHost(defaultDialer, proxyDialer)
 		dialer.AddFromString(strings.Join(proxyConf.AllowList, ","))
 		return dialer.DialContext, nil
 	}()
@@ -86,69 +81,117 @@ func StartTrafficClient(
 
 	// Create ws connection
 	wsDialer := websocket.Dialer{HandshakeTimeout: 3 * time.Second}
-	dailer := func(resume bool) (*websocket.Conn, error) {
+	dial := func(id string, resume bool) (*websocket.Conn, error) {
 		header := http.Header{}
-		header.Set("NK-Session-ID", clientId)
+		header.Set("NK-Session-ID", id)
 		header.Set("NK-Forward-Traffic", strconv.FormatBool(conf.ForwardTraffic))
 		header.Set("NK-Resume", strconv.FormatBool(resume))
-		conn, _, err := wsDialer.DialContext(ctx, conf.RemoteAddr, header)
+		conn, resp, err := wsDialer.DialContext(ctx, conf.RemoteAddr, header)
+		if resp != nil && resp.StatusCode == http.StatusGone {
+			return nil, transport.ErrSessionGone
+		}
 		return conn, err
 	}
 
-	wc, err := dailer(false)
-	if err != nil {
-		return fmt.Errorf("failed to create WebSocket connection: %w", err)
+	runSession := func(successHandler func()) error {
+		// Initialize the wait group for managing concurrent operations
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		// Every run, generate a new client ID for the session
+		clientId := rand.Text()
+		dialer := func(resume bool) (*websocket.Conn, error) { return dial(clientId, resume) }
+
+		wc, err := dialer(false)
+		if err != nil {
+			return fmt.Errorf("failed to create WebSocket connection: %w", err)
+		}
+		rc := transport.NewResumableConn(ctx, wc, dialer)
+		session, err := yamux.Client(rc, yamuxConf)
+		if err != nil {
+			rc.Close()
+			return fmt.Errorf("failed to create yamux session: %w", err)
+		}
+		defer session.Close()
+		defer context.AfterFunc(ctx, func() { session.Close() })()
+
+		if err := conf.Manager.AddSession(clientId, &sessions.UserSession{
+			Session: session,
+			Rc:      rc,
+			// Client does not receive and forward traffic by default
+			ForwardTraffic: false,
+		}); err != nil {
+			return fmt.Errorf("failed to add session: %w", err)
+		}
+		defer conf.Manager.RemoveSession(clientId)
+
+		successHandler()
+		log.Printf("Traffic client started for session ID: %s", clientId)
+
+		for {
+			conn, err := session.Accept()
+			if err != nil {
+				if ctx.Err() != nil {
+					return nil
+				}
+				return fmt.Errorf("failed to accept connection: %w", err)
+			}
+			wg.Go(func() {
+				defer conn.Close()
+				// Handle the connection here, e.g., proxy traffic or perform other tasks
+				property, err := protocol.ResolveConnProperty(conn)
+				if err != nil {
+					log.Printf("Failed to resolve connection property: %v", err)
+					return
+				}
+				switch property.Pattern {
+				case protocol.ProxyPattern:
+					target := net.JoinHostPort(property.Host, strconv.Itoa(int(property.Port)))
+					log.Printf("Connection request to: %s", target)
+					remoteConn, err := proxyDialer(ctx, "tcp", target)
+					if err != nil {
+						log.Printf("Failed to connect to remote server: %v", err)
+						return
+					}
+					defer remoteConn.Close()
+					utils.Relay(conn, remoteConn)
+				default:
+					log.Printf("Unhandled connection pattern: %v", property.Pattern)
+					return
+				}
+			})
+		}
 	}
-	rc := transport.NewResumableConn(ctx, wc, dailer)
-	session, err := yamux.Client(rc, yamuxConf)
-	if err != nil {
-		rc.Close()
-		return fmt.Errorf("failed to create yamux session: %w", err)
-	}
-	defer session.Close()
-	defer context.AfterFunc(ctx, func() { session.Close() })()
 
-	conf.Manager.AddSession(clientId, &sessions.UserSession{
-		Session:        session,
-		Rc:             rc,
-		ForwardTraffic: false,
-	})
-	defer conf.Manager.RemoveSession(clientId)
-
-	close(ready)
-	log.Printf("Traffic client started for session ID: %s", clientId)
-
-	for {
-		conn, err := session.Accept()
+	// The whole session management and connection handling logic
+	var once sync.Once
+	markReady := func() { once.Do(func() { close(ready) }) }
+	establishable := false
+	for attempt := 0; ; attempt++ {
+		err := runSession(func() {
+			attempt = 0
+			establishable = true
+			markReady()
+		})
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
 			}
-			return fmt.Errorf("failed to accept connection: %w", err)
+			log.Printf("Session failed: %v", err)
+			if !establishable {
+				return fmt.Errorf("session failed: %w", err)
+			}
 		}
-		wg.Go(func() {
-			defer conn.Close()
-			// Handle the connection here, e.g., proxy traffic or perform other tasks
-			property, err := protocol.ResolveConnProperty(conn)
-			if err != nil {
-				log.Printf("Failed to resolve connection property: %v", err)
-				return
-			}
-			switch property.Pattern {
-			case protocol.ProxyPattern:
-				target := net.JoinHostPort(property.Host, strconv.Itoa(int(property.Port)))
-				log.Printf("Connection request to: %s", target)
-				remoteConn, err := proxyDialer(ctx, "tcp", target)
-				if err != nil {
-					log.Printf("Failed to connect to remote server: %v", err)
-					return
-				}
-				defer remoteConn.Close()
-				utils.Relay(conn, remoteConn)
-			default:
-				log.Printf("Unhandled connection pattern: %v", property.Pattern)
-				return
-			}
-		})
+		if attempt >= maxRetries {
+			return fmt.Errorf("gave up after %d retries: %w", maxRetries, err)
+		}
+		wait := min(time.Second<<min(attempt, 5), 30*time.Second)
+		log.Printf("Retry %d/%d in %v", attempt+1, maxRetries, wait)
+		select {
+		case <-time.After(wait):
+			// Retry the session
+		case <-ctx.Done():
+			return nil
+		}
 	}
 }
