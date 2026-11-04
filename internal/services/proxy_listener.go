@@ -53,7 +53,7 @@ func StartProxyListener(ctx context.Context, stop context.CancelFunc, ready chan
 	go func() { serveErr <- srv.Serve(ln) }()
 
 	close(ready)
-	log.Printf("🌐 HTTP proxy listener started at port %d", conf.Port)
+	log.Printf("[proxy] 🌐 HTTP proxy listener started at port %d", conf.Port)
 
 	select {
 	case err := <-serveErr:
@@ -125,7 +125,7 @@ func createProxyHandler(dialer xproxy.ContextDialer) http.Handler {
 		Rewrite:   func(*httputil.ProxyRequest) {},
 		Transport: &http.Transport{DialContext: dialer.DialContext, IdleConnTimeout: 90 * time.Second},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			log.Printf("Error: %s %s:%v", r.Method, r.URL.Host, err)
+			log.Printf("[proxy] %s %s: %v", r.Method, r.URL.Host, err)
 			if !errors.Is(err, errHostDenied) {
 				w.WriteHeader(http.StatusBadGateway)
 			} else {
@@ -139,7 +139,7 @@ func createProxyHandler(dialer xproxy.ContextDialer) http.Handler {
 		case r.Method == http.MethodConnect:
 			remote, err := dialer.DialContext(r.Context(), "tcp", r.Host)
 			if err != nil {
-				log.Printf("error connecting to %s: %v", r.Host, err)
+				log.Printf("[proxy] error connecting to %s: %v", r.Host, err)
 				if !errors.Is(err, errHostDenied) {
 					http.Error(w, err.Error(), http.StatusBadGateway)
 				} else {
@@ -151,7 +151,7 @@ func createProxyHandler(dialer xproxy.ContextDialer) http.Handler {
 
 			conn, buf, err := http.NewResponseController(w).Hijack()
 			if err != nil {
-				log.Printf("error hijacking connection: %v", err)
+				log.Printf("[proxy] error hijacking connection: %v", err)
 				return
 			}
 			defer conn.Close()
@@ -159,7 +159,7 @@ func createProxyHandler(dialer xproxy.ContextDialer) http.Handler {
 			defer context.AfterFunc(r.Context(), func() { conn.Close() })()
 
 			if _, err := conn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n")); err != nil {
-				log.Printf("error writing to hijacked connection: %v", err)
+				log.Printf("[proxy] error writing to hijacked connection: %v", err)
 				return
 			}
 			// Bytes the client sent right after CONNECT may already sit in the server's buffer

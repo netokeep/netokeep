@@ -37,7 +37,7 @@ func StartSSHForwardListener(
 	defer context.AfterFunc(ctx, func() { ln.Close() })()
 
 	close(ready)
-	log.Printf("🌐 SSH listener started at port %d", conf.SSHPort)
+	log.Printf("[ssh-forward] 🌐 SSH listener started at port %d", conf.SSHPort)
 
 	for {
 		conn, err := ln.Accept()
@@ -48,11 +48,11 @@ func StartSSHForwardListener(
 			return fmt.Errorf("SSH listener closed: %v", err)
 		}
 		wg.Go(func() {
-			log.Printf("Accepted SSH connection from %s", conn.RemoteAddr())
+			log.Printf("[ssh-forward] accepted SSH connection from %s", conn.RemoteAddr())
 
 			// Select one accessible session to forward outgoing traffic
 			if err := conf.Manager.Traffic2Session(conn, protocol.ConnProperty{Pattern: protocol.SSHPattern}); err != nil {
-				log.Printf("Failed to forward traffic to session: %v", err)
+				log.Printf("[ssh-forward] failed to forward traffic to session: %v", err)
 				conn.Close()
 				return
 			}

@@ -1,8 +1,10 @@
 package services
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -32,8 +34,26 @@ func StartSSHService(
 	)
 	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
 	cmd.WaitDelay = 5 * time.Second
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
+	// Route sshd output through log line by line, so it gets a timestamp and prefix.
+	// Closed after cmd.Wait returns (defer), which ends the scanner goroutine.
+	pr, pw := io.Pipe()
+	logDone := make(chan struct{})
+	// Close the pipe, then wait until the last lines are logged
+	defer func() { pw.Close(); <-logDone }()
+	go func() {
+		defer close(logDone)
+		s := bufio.NewScanner(pr)
+		for s.Scan() {
+			log.Printf("[sshd] %s", s.Text())
+		}
+		if err := s.Err(); err != nil {
+			log.Printf("[sshd] stopped reading output: %v", err)
+			// Keep draining, otherwise sshd blocks writing to a full pipe
+			io.Copy(io.Discard, pr)
+		}
+	}()
+	cmd.Stdout = pw
+	cmd.Stderr = pw
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start sshd: %w", err)
@@ -49,7 +69,6 @@ func StartSSHService(
 	}
 
 	close(ready)
-	log.Println("SSH service is ready")
 
 	err := cmd.Wait()
 	if ctx.Err() != nil {
@@ -69,6 +88,8 @@ func waitForPort(ctx context.Context, port uint16, timeout time.Duration) error 
 		conn, err := d.DialContext(attemptCtx, "tcp", addr)
 		attemptCancel()
 		if err == nil {
+			// sshd will log "Connection closed by <this addr>" for this probe
+			log.Printf("[sshd] port %d is up, closing probe connection %s", port, conn.LocalAddr())
 			conn.Close()
 			return nil
 		}

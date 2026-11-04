@@ -8,7 +8,6 @@ import (
 	"netokeep/internal/utils"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
 )
 
@@ -31,6 +30,15 @@ func (m *SessionManager) AddSession(id string, us *UserSession) error {
 
 func (m *SessionManager) RemoveSession(id string) {
 	m.sessions.Delete(id)
+}
+
+// Get returns the session registered under id.
+func (m *SessionManager) Get(id string) (*UserSession, bool) {
+	val, ok := m.sessions.Load(id)
+	if !ok {
+		return nil, false
+	}
+	return val.(*UserSession), true
 }
 
 func (m *SessionManager) pick(needForward bool) (*yamux.Session, error) {
@@ -69,19 +77,6 @@ func (m *SessionManager) OpenStream(property protocol.ConnProperty, needForward 
 		return nil, err
 	}
 	return stream, nil
-}
-
-func (m *SessionManager) UpdateSession(sid string, wsConn *websocket.Conn, forwardTraffic bool) error {
-	val, ok := m.sessions.Load(sid)
-	if !ok {
-		return fmt.Errorf("session not found: %s", sid)
-	}
-	us := val.(*UserSession)
-	if forwardTraffic != us.ForwardTraffic {
-		return fmt.Errorf("forward traffic option cannot be changed for the same session")
-	}
-	us.Rc.UpdateWsConn(wsConn)
-	return nil
 }
 
 /*

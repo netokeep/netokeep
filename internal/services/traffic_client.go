@@ -126,7 +126,7 @@ func StartTrafficClient(
 		defer conf.Manager.RemoveSession(clientId)
 
 		successHandler()
-		log.Printf("Traffic client started for session ID: %s", clientId)
+		log.Printf("[traffic-client] traffic client started for session ID: %s", clientId)
 
 		for {
 			conn, err := session.Accept()
@@ -141,22 +141,22 @@ func StartTrafficClient(
 				// Handle the connection here, e.g., proxy traffic or perform other tasks
 				property, err := protocol.ResolveConnProperty(conn)
 				if err != nil {
-					log.Printf("Failed to resolve connection property: %v", err)
+					log.Printf("[traffic-client] failed to resolve connection property: %v", err)
 					return
 				}
 				switch property.Pattern {
 				case protocol.ProxyPattern:
 					target := net.JoinHostPort(property.Host, strconv.Itoa(int(property.Port)))
-					log.Printf("Connection request to: %s", target)
+					log.Printf("[traffic-client] connection request to: %s", target)
 					remoteConn, err := proxyDialer(ctx, "tcp", target)
 					if err != nil {
-						log.Printf("Failed to connect to remote server: %v", err)
+						log.Printf("[traffic-client] failed to connect to remote server: %v", err)
 						return
 					}
 					defer remoteConn.Close()
 					utils.Relay(conn, remoteConn)
 				default:
-					log.Printf("Unhandled connection pattern: %v", property.Pattern)
+					log.Printf("[traffic-client] unhandled connection pattern: %v", property.Pattern)
 					return
 				}
 			})
@@ -173,11 +173,12 @@ func StartTrafficClient(
 			establishable = true
 			markReady()
 		})
+		// Canceled (e.g. Ctrl+C): runSession returns nil here, so check ctx first
+		if ctx.Err() != nil {
+			return nil
+		}
 		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			log.Printf("Session failed: %v", err)
+			log.Printf("[traffic-client] session failed: %v", err)
 			if !establishable {
 				return fmt.Errorf("session failed: %w", err)
 			}
@@ -186,7 +187,7 @@ func StartTrafficClient(
 			return fmt.Errorf("gave up after %d retries: %w", maxRetries, err)
 		}
 		wait := min(time.Second<<min(attempt, 5), 30*time.Second)
-		log.Printf("Retry %d/%d in %v", attempt+1, maxRetries, wait)
+		log.Printf("[traffic-client] retry %d/%d in %v", attempt+1, maxRetries, wait)
 		select {
 		case <-time.After(wait):
 			// Retry the session
