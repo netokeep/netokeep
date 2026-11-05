@@ -9,4 +9,4 @@
 .gocache/
 
 # Build files
-release/
+releases/

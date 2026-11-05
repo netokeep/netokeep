@@ -3,7 +3,7 @@ PACKAGE_NAME := netokeep
 DISPLAY_NAME := "NetoKeep"
 
 # Directory definitions
-RELEASE_ROOT := ./release
+RELEASE_ROOT := ./releases
 
 # Target definitions
 CLIENT_SRC := ./cmd/nk
