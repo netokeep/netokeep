@@ -78,6 +78,9 @@ func StartTrafficServer(
 		for {
 			stream, err := session.Accept()
 			if err != nil {
+				if cause := rc.Err(); cause != nil {
+					err = cause
+				}
 				log.Printf("[traffic-server] session %s closed: %v", id, err)
 				return
 			}

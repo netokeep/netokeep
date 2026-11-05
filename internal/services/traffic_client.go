@@ -134,6 +134,10 @@ func StartTrafficClient(
 				if ctx.Err() != nil {
 					return nil
 				}
+				// Prefer the transport's reason (e.g. session gone on server) over yamux's bare EOF
+				if cause := rc.Err(); cause != nil {
+					return fmt.Errorf("session lost: %w", cause)
+				}
 				return fmt.Errorf("failed to accept connection: %w", err)
 			}
 			wg.Go(func() {

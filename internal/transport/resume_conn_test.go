@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -176,5 +177,29 @@ func TestResumableConnCloseUnblocks(t *testing.T) {
 	}
 	if _, err := client.Write([]byte("x")); err == nil {
 		t.Fatal("Write after Close should fail")
+	}
+}
+
+func TestResumableConnErrReportsSessionGone(t *testing.T) {
+	client, _ := newPair(t)
+	// From now on the "server" answers every resume with 410.
+	client.dial = func(bool) (*websocket.Conn, error) { return nil, ErrSessionGone }
+	if client.Err() != nil {
+		t.Fatalf("Err before close: %v", client.Err())
+	}
+	dropTCP(client)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := client.Read(make([]byte, 1))
+		done <- err
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Read did not return after the session was gone")
+	}
+	if !errors.Is(client.Err(), ErrSessionGone) {
+		t.Fatalf("Err() = %v, want ErrSessionGone", client.Err())
 	}
 }

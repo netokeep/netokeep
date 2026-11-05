@@ -58,6 +58,7 @@ type ResumableConn struct {
 	unacked   [][]byte        // payloads sent but not acked yet
 	unackedAt uint64          // stream offset of unacked[0]
 	sendSeq   uint64          // total bytes written
+	cause     error           // why the conn closed; nil for a plain Close
 
 	writeMu   sync.Mutex // one WebSocket writer at a time; also orders replay before new writes
 	pending   []byte     // received but not yet returned by Read; reader goroutine only
@@ -101,7 +102,7 @@ func (c *ResumableConn) Read(p []byte) (int, error) {
 			continue // current() waits for the next conn
 		}
 		if len(msg) < ackSize {
-			c.Close()
+			c.closeWith(errProtocol)
 			return 0, errProtocol
 		}
 		ws.SetReadDeadline(time.Now().Add(idleTimeout))
@@ -114,7 +115,7 @@ func (c *ResumableConn) Read(p []byte) (int, error) {
 		}
 		if err := c.ackLocked(binary.BigEndian.Uint64(msg)); err != nil {
 			c.mu.Unlock()
-			c.Close()
+			c.closeWith(err)
 			return 0, err
 		}
 		c.recvSeq += uint64(len(msg) - ackSize)
@@ -186,6 +187,24 @@ func (c *ResumableConn) Close() error {
 		}
 	})
 	return nil
+}
+
+// closeWith closes the conn and records why, so Err can report it. The first cause wins.
+func (c *ResumableConn) closeWith(cause error) {
+	c.mu.Lock()
+	if c.cause == nil {
+		c.cause = cause
+	}
+	c.mu.Unlock()
+	c.Close()
+}
+
+// Err reports why the conn closed: e.g. ErrSessionGone, an exhausted reconnect
+// budget or a protocol violation. It is nil while open or after a plain Close.
+func (c *ResumableConn) Err() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.cause
 }
 
 // current returns the live conn, waiting while a reconnect is in progress.
@@ -265,10 +284,11 @@ func (c *ResumableConn) attach(ws *websocket.Conn) error {
 		return net.ErrClosed
 	}
 	if err := c.ackLocked(peerAck); err != nil || c.unackedAt != peerAck {
+		err := fmt.Errorf("%w: peer ack %d, unacked from %d", errProtocol, peerAck, c.unackedAt)
 		c.mu.Unlock()
 		ws.Close()
-		c.Close()
-		return fmt.Errorf("%w: peer ack %d, unacked from %d", errProtocol, peerAck, c.unackedAt)
+		c.closeWith(err)
+		return err
 	}
 	replay := slices.Clone(c.unacked)
 	c.ackSent = myAck
@@ -396,15 +416,19 @@ func (c *ResumableConn) supervise() {
 			return
 		case <-c.lost:
 		}
-		var ok bool
+		var err error
 		if c.dial != nil {
-			ok = c.redial()
+			err = c.redial()
 		} else {
-			ok = c.awaitResume()
+			err = c.awaitResume()
 		}
-		if !ok {
-			log.Printf("[resume] connection lost for good, closing")
-			c.Close()
+		if c.ctx.Err() != nil {
+			// Closed or canceled while recovering: a normal shutdown, not a lost conn
+			return
+		}
+		if err != nil {
+			log.Printf("[resume] connection lost for good, closing: %v", err)
+			c.closeWith(err)
 			return
 		}
 	}
@@ -417,39 +441,41 @@ func (c *ResumableConn) hasConn() bool {
 }
 
 // redial reconnects with backoff 1s, 2s, 4s (+ jitter) within reconnectBudget.
-func (c *ResumableConn) redial() bool {
+// It returns nil once a conn is attached, otherwise the reason it gave up.
+func (c *ResumableConn) redial() error {
 	deadline := time.Now().Add(reconnectBudget)
 	for attempt := 0; ; attempt++ {
 		if c.hasConn() {
-			return true
+			return nil
 		}
 		log.Printf("[resume] reconnecting (attempt %d)", attempt+1)
 		ws, err := c.dial(true)
 		if err == nil {
 			if err = c.attach(ws); err == nil {
 				log.Printf("[resume] reconnected")
-				return true
+				return nil
 			}
 		}
 		log.Printf("[resume] reconnect failed: %v", err)
 		if errors.Is(err, ErrSessionGone) {
-			return false
+			return err
 		}
 
 		wait := time.Second<<attempt + rand.N(500*time.Millisecond)
 		if time.Now().Add(wait).After(deadline) {
-			return false
+			return fmt.Errorf("reconnect budget %v exhausted: %w", reconnectBudget, err)
 		}
 		select {
 		case <-time.After(wait):
 		case <-c.ctx.Done():
-			return false
+			return c.ctx.Err()
 		}
 	}
 }
 
 // awaitResume waits for the client to come back through UpdateWsConn.
-func (c *ResumableConn) awaitResume() bool {
+// It returns nil once a conn is attached, otherwise the reason it gave up.
+func (c *ResumableConn) awaitResume() error {
 	timer := time.NewTimer(resumeGrace)
 	defer timer.Stop()
 	for {
@@ -457,14 +483,14 @@ func (c *ResumableConn) awaitResume() bool {
 		ws, ch := c.ws, c.changed
 		c.mu.Unlock()
 		if ws != nil {
-			return true
+			return nil
 		}
 		select {
 		case <-ch:
 		case <-timer.C:
-			return false
+			return fmt.Errorf("client did not resume within %v", resumeGrace)
 		case <-c.ctx.Done():
-			return false
+			return c.ctx.Err()
 		}
 	}
 }
