@@ -22,7 +22,7 @@ func createCoreCmd() *cobra.Command {
 	var useProxy bool
 
 	var coreCmd = &cobra.Command{
-		Use:    "core <nickname>",
+		Use:    "core <name>",
 		Hidden: true,
 		Short:  "Run the client in the foreground",
 		Long:   "Run the client in the foreground, console logs in the terminal.",

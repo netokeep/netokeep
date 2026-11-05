@@ -12,7 +12,7 @@ func createStatusCmd() *cobra.Command {
 	var lines int
 
 	statusCmd := &cobra.Command{
-		Use:   "status <nickname>",
+		Use:   "status <name>",
 		Short: "Show the status and recent logs of a NetoKeep client",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

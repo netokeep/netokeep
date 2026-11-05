@@ -11,7 +11,7 @@ import (
 
 func createRestartCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "restart <nickname>",
+		Use:   "restart <name>",
 		Short: "Restart a NetoKeep client with its last settings",
 		Long:  "Stop the client if it is running, then start it again with the settings saved from its last start.",
 		Args:  cobra.ExactArgs(1),

@@ -26,5 +26,7 @@ func IsProcessRunning(pid int) bool {
 	if err1 != nil || err2 != nil {
 		return true
 	}
-	return filepath.Clean(exe) == filepath.Clean(self)
+	// Compare file names only, so a `go run` build (temp dir) and the installed
+	// binary recognize each other's processes.
+	return filepath.Base(exe) == filepath.Base(self)
 }

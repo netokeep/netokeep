@@ -64,6 +64,7 @@ nk status <name>                                 # 查看状态
 nk stop <name>                                   # 停止
 nk restart <name>                                # 用上次的参数重启
 nk ls                                            # 列出所有客户端
+nk clear <name>                                  # 删除已停止客户端的状态和日志
 ```
 > - r：远程提供的代理HTTP/HTTPS连接
 > - s：暴露给本机用于ssh连接的端口

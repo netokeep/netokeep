@@ -31,7 +31,7 @@ function Install-NetoKeep {
 
     $version = (& $Dest --version) -replace '^.*version\s+', ''
     Write-Host "`n$([char]0x2714) NetoKeep successfully installed!`n" -ForegroundColor Green
-    Write-Host "    Version: $version`n"
+    Write-Host "    Client version: $version"
     Write-Host "    Location: $BinDir`n"
     Write-Host 'Next: Run nk --help to get started.'
 

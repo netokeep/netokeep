@@ -24,7 +24,7 @@ func createStartCmd() *cobra.Command {
 	var c clientArgs
 
 	startCmd := &cobra.Command{
-		Use:   "start <nickname>",
+		Use:   "start <name>",
 		Short: "Start the NetoKeep client",
 		Long:  "Start the NetoKeep client, listening for SSH connections and forwarding TCP traffic.",
 		Args:  cobra.ExactArgs(1),

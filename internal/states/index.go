@@ -6,6 +6,7 @@ import (
 	"netokeep/internal/utils"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -124,5 +125,7 @@ func ListClients() ([]string, error) {
 			names = append(names, name)
 		}
 	}
+	// Sort by name, not file name: "cpu-2-state.json" sorts before "cpu-state.json"
+	sort.Strings(names)
 	return names, nil
 }

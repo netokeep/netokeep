@@ -11,7 +11,7 @@ import (
 
 func createStopCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "stop <nickname>",
+		Use:   "stop <name>",
 		Short: "Stop a running NetoKeep client",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

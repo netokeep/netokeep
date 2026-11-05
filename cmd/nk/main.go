@@ -21,6 +21,7 @@ func main() {
 	rootCmd.AddCommand(createRestartCmd())
 	rootCmd.AddCommand(createStatusCmd())
 	rootCmd.AddCommand(createListCmd())
+	rootCmd.AddCommand(createClearCmd())
 	rootCmd.AddCommand(createCoreCmd())
 	rootCmd.Execute()
 }

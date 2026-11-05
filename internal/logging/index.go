@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/natefinch/lumberjack"
 )
@@ -30,15 +31,28 @@ func InitLogging(name string) {
 	log.SetOutput(multiWriter)
 }
 
+// lumberjack names rotated backups "<name>-<time>.log", plus ".gz" when compressed.
+const backupTimeFormat = "2006-01-02T15-04-05.000"
+
+// ClearLogs removes the log file of name and its rotated backups.
+// Other clients whose names share the prefix (e.g. "cpu-2" for "cpu") are left alone.
 func ClearLogs(name string) error {
-	pattern := filepath.Join(logDir, name+"*.log*")
-	matches, err := filepath.Glob(pattern)
+	if err := os.Remove(LogPath(name)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	backups, err := filepath.Glob(filepath.Join(logDir, name+"-*.log*"))
 	if err != nil {
 		return err
 	}
-
-	for _, match := range matches {
-		_ = os.Remove(match)
+	for _, b := range backups {
+		ts := strings.TrimPrefix(filepath.Base(b), name+"-")
+		ts, _, _ = strings.Cut(ts, ".log")
+		if _, err := time.Parse(backupTimeFormat, ts); err != nil {
+			continue // not a backup of name, e.g. "cpu-2.log"
+		}
+		if err := os.Remove(b); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 	return nil
 }
