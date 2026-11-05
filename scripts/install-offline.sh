@@ -95,7 +95,12 @@ for name in "${INSTALLED[@]}"; do
 	printf "    %s: \033[36m%s\033[0m\n" "$label" "$("$NK_BIN_DIR/$name" --version 2>/dev/null | sed -E 's/^.*version[[:space:]]+//')"
 done
 printf "    Location: \033[36m%s\033[0m\n\n" "$NK_BIN_DIR"
-printf "Next: Run \033[1m\033[36m%s --help\033[0m to get started.\n" "${INSTALLED[${#INSTALLED[@]}-1]}"
+# e.g. "nks --help or nk --help" when both were installed
+help=""
+for name in "${INSTALLED[@]}"; do
+	help+="${help:+ or }\033[1m\033[36m$name --help\033[0m"
+done
+printf "Next: Run %b to get started.\n" "$help"
 
 # Detect whether the local bin directory is in the user's PATH
 if [[ ":$PATH:" != *":$NK_BIN_DIR:"* ]]; then
