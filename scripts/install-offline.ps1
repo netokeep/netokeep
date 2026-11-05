@@ -14,19 +14,20 @@ function Install-NetoKeep {
         return
     }
 
+    # Refuse to install while any nk.exe is running, wherever it lives (users may move it): stop it first
+    $running = @(Get-Process -Name nk -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) {
+        Write-Host "Error: nk is running (PID: $($running.Id -join ', ')). Stop it first with nk stop <name>, then rerun the installer." -ForegroundColor Red
+        return
+    }
+
     New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
     Write-Host '==> Installing Client...' -ForegroundColor Cyan
     # Copy next to the target first, so the user's file is left in place
     $tmp = "$Dest.download"
     Copy-Item $Src $tmp -Force
 
-    # A running exe cannot be overwritten, but it can be renamed: move it aside, then put the new one in place.
-    # Old copies that are no longer running are cleaned up here or on the next install.
-    Get-ChildItem "$Dest.*.old" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-    if (Test-Path $Dest) {
-        Rename-Item $Dest ("nk.exe.{0}.old" -f [guid]::NewGuid().ToString('N').Substring(0, 8))
-    }
-    Move-Item $tmp $Dest
+    Move-Item $tmp $Dest -Force
 
     $version = (& $Dest --version) -replace '^.*version\s+', ''
     Write-Host "`n$([char]0x2714) NetoKeep successfully installed!`n" -ForegroundColor Green

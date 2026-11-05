@@ -30,6 +30,33 @@ if [ ! -f "$SERVER_BINARY" ] && [ ! -f "$CLIENT_BINARY" ]; then
 	exit 1
 fi
 
+# ensure_not_running <name>: refuse to install while any "<name> core" process is running,
+# wherever its binary lives (users may move it); stop it first instead of leaving it orphaned.
+ensure_not_running() {
+	local pids="" d args a0 a1
+	if [ "$os" = linux ]; then
+		# Read /proc directly: minimal containers often have no pgrep
+		for d in /proc/[0-9]*; do
+			args="$(tr '\0' '\n' 2>/dev/null < "$d/cmdline" | head -n 2 || true)"
+			a0="${args%%$'\n'*}"
+			a1="${args#*$'\n'}"
+			if [ "${a0##*/}" = "$1" ] && [ "$a1" = core ]; then
+				pids="$pids ${d#/proc/}"
+			fi
+		done
+	else
+		# argv[0] ends with /<name> (or is <name>) and argv[1] is "core"
+		pids="$(pgrep -f -- "(^|/)$1 core( |\$)" | tr '\n' ' ' || true)"
+	fi
+	pids="$(echo $pids)" # trim spaces
+	if [ -n "$pids" ]; then
+		local hint="nks stop"
+		if [ "$1" = nk ]; then hint="nk stop <name>"; fi
+		printf "\033[31mError:\033[0m %s is running (PID: %s). Stop it first with \033[36m%s\033[0m, then rerun the installer.\n" "$1" "$pids" "$hint"
+		exit 1
+	fi
+}
+
 # install_bin <src> <name>: copy next to the target first, then rename over it.
 # The rename is atomic and safe for a running binary; the user's file is left in place.
 install_bin() {
@@ -48,9 +75,16 @@ install_bin() {
 
 INSTALLED=()
 if [ -f "$SERVER_BINARY" ]; then
+	# nks runs /usr/sbin/sshd (that exact path) for SSH sessions
+	if [ ! -x /usr/sbin/sshd ]; then
+		printf "\033[33mWarning: /usr/sbin/sshd not found; nks needs it to serve SSH.\033[0m\n"
+		printf "    Install it first, e.g. \033[36mapt install openssh-server\033[0m\n"
+	fi
+	ensure_not_running nks
 	install_bin "$SERVER_BINARY" nks Server
 fi
 if [ -f "$CLIENT_BINARY" ]; then
+	ensure_not_running nk
 	install_bin "$CLIENT_BINARY" nk Client
 fi
 

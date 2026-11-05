@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/natefinch/lumberjack"
 )
@@ -17,7 +18,7 @@ func InitLogging(name string) {
 		log.Fatalf("Failed to create log directory: %v", err)
 	}
 
-	logPath := filepath.Join(logDir, name+".log")
+	logPath := LogPath(name)
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   logPath,
 		MaxSize:    1,    // Size of one log file (MB)
@@ -40,4 +41,23 @@ func ClearLogs(name string) error {
 		_ = os.Remove(match)
 	}
 	return nil
+}
+
+// LogPath returns the current log file of name.
+func LogPath(name string) string {
+	return filepath.Join(logDir, name+".log")
+}
+
+// Tail returns the last n lines of the current log file of name.
+// The file is rotated at 1 MB, so reading it whole is cheap.
+func Tail(name string, n int) ([]string, error) {
+	data, err := os.ReadFile(LogPath(name))
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return lines, nil
 }

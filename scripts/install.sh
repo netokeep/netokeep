@@ -31,12 +31,6 @@ for dep in curl ; do
 done
 
 
-# The server (nks) needs sshd, so it is only released for Linux
-COMPONENTS=(nk)
-if [ "$os" = linux ]; then
-	COMPONENTS=(nks nk)
-fi
-
 # version_of <binary>: prints its version, or nothing if it is not installed
 version_of() {
 	if [ -x "$1" ]; then
@@ -56,6 +50,33 @@ if [ -z "$LATEST_VERSION" ]; then
 fi
 
 
+# ensure_not_running <name>: refuse to install while any "<name> core" process is running,
+# wherever its binary lives (users may move it); stop it first instead of leaving it orphaned.
+ensure_not_running() {
+	local pids="" d args a0 a1
+	if [ "$os" = linux ]; then
+		# Read /proc directly: minimal containers often have no pgrep
+		for d in /proc/[0-9]*; do
+			args="$(tr '\0' '\n' 2>/dev/null < "$d/cmdline" | head -n 2 || true)"
+			a0="${args%%$'\n'*}"
+			a1="${args#*$'\n'}"
+			if [ "${a0##*/}" = "$1" ] && [ "$a1" = core ]; then
+				pids="$pids ${d#/proc/}"
+			fi
+		done
+	else
+		# argv[0] ends with /<name> (or is <name>) and argv[1] is "core"
+		pids="$(pgrep -f -- "(^|/)$1 core( |\$)" | tr '\n' ' ' || true)"
+	fi
+	pids="$(echo $pids)" # trim spaces
+	if [ -n "$pids" ]; then
+		local hint="nks stop"
+		if [ "$1" = nk ]; then hint="nk stop <name>"; fi
+		printf "\033[31mError:\033[0m %s is running (PID: %s). Stop it first with \033[36m%s\033[0m, then rerun the installer.\n" "$1" "$pids" "$hint"
+		exit 1
+	fi
+}
+
 # install_bin <name> <asset> <label>: download next to the target, then rename over it (atomic)
 install_bin() {
 	local tmp url="https://github.com/netokeep/netokeep/releases/latest/download/$2"
@@ -70,23 +91,40 @@ install_bin() {
 	mv -f "$tmp" "$NK_BIN_DIR/$1"
 }
 
+# install_component <name> <asset> <label>: skip if up-to-date, otherwise download it
 INSTALLED=()
-for name in "${COMPONENTS[@]}"; do
-	current="$(version_of "$NK_BIN_DIR/$name")"
+install_component() {
+	local current
+	current="$(version_of "$NK_BIN_DIR/$1")"
 	if [ -n "$LATEST_VERSION" ] && [ "$current" = "$LATEST_VERSION" ]; then
-		printf "\033[1m\033[32m✔ %s is already up-to-date (version %s).\033[0m\n" "$name" "$current"
-		continue
+		printf "\033[1m\033[32m✔ %s is already up-to-date (version %s).\033[0m\n" "$1" "$current"
+		return
 	fi
 	if [ -n "$current" ] && [ -n "$LATEST_VERSION" ]; then
-		printf "\033[36mUpdating %s: %s -> %s\033[0m\n" "$name" "$current" "$LATEST_VERSION"
+		printf "\033[36mUpdating %s: %s -> %s\033[0m\n" "$1" "$current" "$LATEST_VERSION"
 	fi
-	if [ "$name" = nks ]; then
-		install_bin nks "netokeep-server-$os-$arch" Server
-	else
-		install_bin nk "netokeep-client-$os-$arch" Client
+	ensure_not_running "$1"
+	install_bin "$1" "$2" "$3"
+	INSTALLED+=("$1")
+}
+
+install_client() {
+	install_component nk "netokeep-client-$os-$arch" Client
+}
+
+# The server is Linux only and runs /usr/sbin/sshd (that exact path) for SSH sessions
+install_server() {
+	if [ ! -x /usr/sbin/sshd ]; then
+		printf "\033[33mWarning: /usr/sbin/sshd not found; nks needs it to serve SSH.\033[0m\n"
+		printf "    Install it first, e.g. \033[36mapt install openssh-server\033[0m\n"
 	fi
-	INSTALLED+=("$name")
-done
+	install_component nks "netokeep-server-$os-$arch" Server
+}
+
+if [ "$os" = linux ]; then
+	install_server
+fi
+install_client
 if [ ${#INSTALLED[@]} -eq 0 ]; then
 	exit 0
 fi

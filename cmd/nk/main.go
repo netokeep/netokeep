@@ -17,6 +17,10 @@ func main() {
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(createStartCmd())
+	rootCmd.AddCommand(createStopCmd())
+	rootCmd.AddCommand(createRestartCmd())
+	rootCmd.AddCommand(createStatusCmd())
+	rootCmd.AddCommand(createListCmd())
 	rootCmd.AddCommand(createCoreCmd())
 	rootCmd.Execute()
 }

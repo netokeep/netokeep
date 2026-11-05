@@ -6,6 +6,7 @@ import (
 	"netokeep/internal/utils"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type StateKind string
@@ -104,4 +105,24 @@ func CheckRunning(state *StateData) bool {
 
 	state.State = StateUnknown
 	return false
+}
+
+// ServerName is the state name of nks; clients must not use it.
+const ServerName = "nks"
+
+// ListClients returns the names of all client states (every state file except the server's), sorted.
+func ListClients() ([]string, error) {
+	pattern := filepath.Join(homeDir, ".local", "state", "netokeep", "*-state.json")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(matches))
+	for _, m := range matches {
+		name := strings.TrimSuffix(filepath.Base(m), "-state.json")
+		if name != ServerName {
+			names = append(names, name)
+		}
+	}
+	return names, nil
 }

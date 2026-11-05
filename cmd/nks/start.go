@@ -25,7 +25,7 @@ func createStartCmd() *cobra.Command {
 				return
 			}
 
-			data, err := states.LoadState("nks")
+			data, err := states.LoadState(states.ServerName)
 			if err != nil {
 				fmt.Printf("\033[31mFailed to load current server state: %v\033[0m\n", err)
 				return
@@ -72,7 +72,7 @@ func createStartCmd() *cobra.Command {
 					return
 				case <-ticker.C:
 					// Check the state periodically
-					newData, err := states.LoadState("nks")
+					newData, err := states.LoadState(states.ServerName)
 					if err != nil {
 						fmt.Printf("\033[31mError checking state while waiting: %v\033[0m\n", err)
 						return

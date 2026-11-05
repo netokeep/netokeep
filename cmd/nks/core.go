@@ -30,7 +30,7 @@ func createCoreCmd() *cobra.Command {
 			defer stop()
 
 			eg, egCtx := errgroup.WithContext(ctx)
-			logging.InitLogging("nks")
+			logging.InitLogging(states.ServerName)
 
 			manager := &sessions.SessionManager{}
 
@@ -87,7 +87,7 @@ func createCoreCmd() *cobra.Command {
 						finalState = states.StateFailed
 					}
 
-					if err := states.WriteState("nks", &states.StateData{
+					if err := states.WriteState(states.ServerName, &states.StateData{
 						State:   finalState,
 						Pid:     os.Getpid(),
 						InPort:  inPort,
@@ -101,7 +101,7 @@ func createCoreCmd() *cobra.Command {
 
 				if remaining == 0 {
 					// All components are ready
-					if err := states.WriteState("nks", &states.StateData{
+					if err := states.WriteState(states.ServerName, &states.StateData{
 						State:   states.StateRunning,
 						Pid:     os.Getpid(),
 						InPort:  inPort,
