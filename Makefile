@@ -41,7 +41,9 @@ build: format
 		echo "🔨 Building $$os/$$arch..."; \
 		mkdir -p $(RELEASE_ROOT); \
 		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $(RELEASE_ROOT)/netokeep-client-$$binary_suffix $(CLIENT_SRC); \
-		GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $(RELEASE_ROOT)/netokeep-server-$$binary_suffix $(SERVER_SRC); \
+		if [ "$$os" = "linux" ]; then \
+			GOOS=$$os GOARCH=$$arch go build -ldflags "$(LDFLAGS)" -o $(RELEASE_ROOT)/netokeep-server-$$binary_suffix $(SERVER_SRC); \
+		fi; \
 	done
 
 # Debug commands
