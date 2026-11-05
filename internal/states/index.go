@@ -2,6 +2,7 @@ package states
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"netokeep/internal/utils"
 	"os"
@@ -40,32 +41,29 @@ type StateData struct {
 }
 
 var homeDir, _ = os.UserHomeDir()
-var defaultStateData = &StateData{State: StateUnknown}
 
+// ErrNotFound means the state file does not exist: the name was never started, or it was cleared.
+var ErrNotFound = errors.New("state not found")
+
+// LoadState reads the state of name. It never creates or rewrites the state file:
+// a missing file returns ErrNotFound, and an unreadable one is reported as unknown.
+// With ErrNotFound the returned state is still usable (unknown, PID 0), so callers
+// that only want to know whether name is running can ignore that error.
 func LoadState(name string) (*StateData, error) {
-	// read state file
 	statePath := filepath.Join(homeDir, ".local", "state", "netokeep", name+"-state.json")
 	contents, err := os.ReadFile(statePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if err := WriteState(name, defaultStateData); err != nil {
-				log.Printf("Failed to write default state data: %v\n", err)
-				return nil, err
-			}
-			return defaultStateData, nil
+			return &StateData{State: StateUnknown}, ErrNotFound
 		}
 		return nil, err
 	}
 
-	// decode the JSON content from the file into a StateData struct
 	stateData := new(StateData)
 	if err := json.Unmarshal(contents, stateData); err != nil {
-		log.Println("Failed to unmarshal state data. Overwriting with default.")
-		if err := WriteState(name, defaultStateData); err != nil {
-			log.Printf("Failed to write default state data: %v\n", err)
-			return nil, err
-		}
-		return defaultStateData, nil
+		// Leave the file alone so `nk ls` still shows it and `nk clear` can remove it
+		log.Printf("Failed to unmarshal state data of '%s': %v\n", name, err)
+		return &StateData{State: StateUnknown}, nil
 	}
 	return stateData, nil
 }

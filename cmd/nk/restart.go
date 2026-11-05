@@ -18,6 +18,10 @@ func createRestartCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			name := args[0]
 			data, err := states.LoadState(name)
+			if errors.Is(err, states.ErrNotFound) {
+				fmt.Printf("\033[33mNetoKeep client '%s' not found. Use 'nk ls' to see all clients.\033[0m\n", name)
+				return
+			}
 			if err != nil {
 				fmt.Printf("\033[31mError checking state for %s: %v\033[0m\n", name, err)
 				return

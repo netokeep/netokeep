@@ -18,6 +18,8 @@ func createStopCmd() *cobra.Command {
 			name := args[0]
 			data, err := states.Stop(name, 15*time.Second)
 			switch {
+			case errors.Is(err, states.ErrNotFound):
+				fmt.Printf("\033[33mNetoKeep client '%s' not found. Use 'nk ls' to see all clients.\033[0m\n", name)
 			case errors.Is(err, states.ErrNotRunning):
 				fmt.Printf("\033[33mNetoKeep client '%s' is not running.\033[0m\n", name)
 			case err != nil:

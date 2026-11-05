@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"netokeep/internal/logging"
 	"netokeep/internal/states"
@@ -16,7 +17,7 @@ func createStatusCmd() *cobra.Command {
 		Short: "Show the status and recent logs of the NetoKeep server",
 		Run: func(cmd *cobra.Command, args []string) {
 			data, err := states.LoadState(states.ServerName)
-			if err != nil {
+			if err != nil && !errors.Is(err, states.ErrNotFound) {
 				fmt.Printf("\033[31mFailed to load server state: %v\033[0m\n", err)
 				return
 			}

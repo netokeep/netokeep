@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"netokeep/internal/states"
 	"netokeep/internal/utils"
@@ -37,7 +38,7 @@ func createStartCmd() *cobra.Command {
 			}
 
 			data, err := states.LoadState(name)
-			if err != nil {
+			if err != nil && !errors.Is(err, states.ErrNotFound) {
 				fmt.Printf("\033[31mError checking state for %s: %v\033[0m\n", name, err)
 				return
 			}
@@ -101,6 +102,9 @@ func launchClient(ctx context.Context, name string, c clientArgs) {
 		case <-ticker.C:
 			// Check the state periodically
 			newData, err := states.LoadState(name)
+			if errors.Is(err, states.ErrNotFound) {
+				continue // not written yet
+			}
 			if err != nil {
 				fmt.Printf("\033[31mError checking state for %s while waiting: %v\033[0m\n", name, err)
 				return

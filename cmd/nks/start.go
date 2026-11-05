@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"netokeep/internal/states"
 	"netokeep/internal/utils"
@@ -26,7 +27,7 @@ func createStartCmd() *cobra.Command {
 			}
 
 			data, err := states.LoadState(states.ServerName)
-			if err != nil {
+			if err != nil && !errors.Is(err, states.ErrNotFound) {
 				fmt.Printf("\033[31mFailed to load current server state: %v\033[0m\n", err)
 				return
 			}
@@ -73,6 +74,9 @@ func createStartCmd() *cobra.Command {
 				case <-ticker.C:
 					// Check the state periodically
 					newData, err := states.LoadState(states.ServerName)
+					if errors.Is(err, states.ErrNotFound) {
+						continue // not written yet
+					}
 					if err != nil {
 						fmt.Printf("\033[31mError checking state while waiting: %v\033[0m\n", err)
 						return

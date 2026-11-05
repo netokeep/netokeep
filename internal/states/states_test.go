@@ -1,6 +1,9 @@
 package states
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -22,11 +25,35 @@ func TestLoadState(t *testing.T) {
 
 	name := "test"
 	stateData, err := LoadState(name)
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Expected ErrNotFound, got %v", err)
 	}
-	if stateData.State != StateUnknown {
-		t.Errorf("Expected state '%s', got '%s'", StateUnknown, stateData.State)
+	if stateData == nil || stateData.State != StateUnknown {
+		t.Errorf("Expected an unknown state, got %+v", stateData)
+	}
+	// Loading must not create the state file
+	if names, _ := ListClients(); len(names) != 0 {
+		t.Errorf("Expected no clients after loading a missing state, got %v", names)
+	}
+}
+
+func TestLoadStateCorrupt(t *testing.T) {
+	setupTestPaths(t)
+
+	path := filepath.Join(homeDir, ".local", "state", "netokeep", "bad-state.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{oops"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	stateData, err := LoadState("bad")
+	if err != nil || stateData.State != StateUnknown {
+		t.Fatalf("Expected unknown state and no error, got %+v, %v", stateData, err)
+	}
+	// The corrupt file is left for `nk clear` to remove
+	if contents, _ := os.ReadFile(path); string(contents) != "{oops" {
+		t.Errorf("Corrupt state file was rewritten: %q", contents)
 	}
 }
 
